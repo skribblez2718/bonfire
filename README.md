@@ -8,10 +8,12 @@ Bonfire's methodology is influenced by:
 - [spikee](https://github.com/ReversecLabs/spikee)
 
 ## Extending Bonfire
-- Add new augmentation methods by subclassing the relevant Evasion class in `utils/`.
+- Add new augmentation methods by adding methods to the relevant Evasion class in `utils/`, subclassing or creating your own class.
 - Add new templates or intents as `.jsonl` files in the `data/` directory.
-**Intents** are base prompts that define the "what" (e.g., leaking a system prompt, testing for bias, attacking users, etc.).
-**Templates** are strategies or techniques (e.g., logical bypasses, role play) that enhance the base prompt. Bonfire combines your base intent with the templates/strategies you specify, generating all combinations and applying augmentations.
+
+- **Intents** are base prompts that define the "what" (e.g., leaking a system prompt, testing for bias, attacking users, etc.).
+
+- **Templates** are strategies or techniques (e.g., logical bypasses, role play) that enhance the base prompt. Bonfire combines your base intent with the templates/strategies you specify, generating all combinations and applying augmentations.
 
 To add a new technique, simply create a new file in the templates directory with prompts in the specified format. You may specify as many base prompts as you like, but note that this can create a large number of payloads, which may take extended amounts of time to process especially for audio and image generation.
 
@@ -147,7 +149,7 @@ def run_test(payloads: List[Dict[str, str]]):
 
 ## TODO
 - Results analysis and report generation.
-- Multi-turn functionality: if the `prompt` key value is a list, Bonfire will send those prompts sequentially.
+- Multi-turn functionality: Allow for a list of prompts in the `prompt` value
 
 
 ## Authors
