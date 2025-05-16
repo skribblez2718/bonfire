@@ -24,7 +24,7 @@ To add a new technique, simply create a new file in the templates directory with
 ## Dependencies
 - Python 3.11+
 - [openai-edge-tts](https://github.com/travisvn/openai-edge-tts) (optional, required for audio generation)
-  - The 
+  - Set your API key in the `.env` file with the `OPENAI_EDGE_TTS_API_KEY` variable. 
 - See `requirements.txt` for other Python dependencies.
 
 ## Installation
