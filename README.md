@@ -148,8 +148,8 @@ def run_test(payloads: List[Dict[str, str]]):
 
 
 ## TODO
-- Results analysis and report generation.
-- Multi-turn functionality: Allow for a list of prompts in the `prompt` value
+- Results analysis and report generation: Allow for specification of an OpenAI compatible or Ollama endpoint to determine if the model responded in an unsafe way. Generate an HTML report for the results that is filterable. I have these in othe rmodules and just need to implement here
+- Multi-turn functionality: Allow for a list of prompts in the `prompt` value to facilite multi-turn testing
 
 
 ## Authors
