@@ -69,7 +69,7 @@ Bonfire is primarily used via its CLI, supporting both `generate` and `test` com
 
 ### CLI Example
 ```bash
-python -m bonfire.bonfire --help
+pyhton3 bonfire.py --help
 ```
 
 ### Command Overview
@@ -94,9 +94,11 @@ All arguments are positional and required unless otherwise noted.
 ### `generate` Command
 Generate augmented payloads and save them to disk.
 
-**Example:**
+**Examples:**
 ```bash
-python -m bonfire.bonfire generate text None all ./output
+pyhton3 bonfire.py generate text  all ./output
+python3 bonfire.py generate image png logic_bypass ./output
+python3 bonfire.py generate audio mp3 basic ./output
 ```
 
 ---
@@ -112,9 +114,9 @@ The `test` command requires **all the same arguments as `generate`**, in the sam
 | `output_dir` | str    | Yes      | Directory path to save generated payloads. Will be created if it does not exist. |
 | `test_file`  | str    | Yes      | Name of the Python file (with or without `.py` extension) in `bonfire/functions/` to run as the test. |
 
-**Example:**
+**Examples:**
 ```bash
-python -m bonfire.bonfire test text None all ./output example
+pyhton3 bonfire.py test text basic,logic_bypass ./output example
 ```
 This will:
 - Generate payloads as in `generate`.
