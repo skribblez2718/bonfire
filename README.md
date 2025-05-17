@@ -9,7 +9,8 @@ Bonfire's methodology is influenced by:
 
 ## Extending Bonfire
 - Add new augmentation methods by adding methods to the relevant Evasion class in `utils/`, subclassing or creating your own class.
-- Add new templates or intents as `.jsonl` files in the `data/` directory.
+
+- Add new templates as `.jsonl` files in the `data/` directory. You can add as many templates or intents to the relevant files; however the number of payloads grows fast. For example, using 5 intents, with 5 instructions on one template yielded 3,000 text payloads.
 
 - **Intents** are base prompts that define the "what" (e.g., leaking a system prompt, testing for bias, attacking users, etc.).
 
