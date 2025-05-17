@@ -148,9 +148,10 @@ def run_test(payloads: List[Dict[str, str]]):
 
 
 ## TODO
-- Results analysis and report generation: Allow for specification of an OpenAI compatible or Ollama endpoint to determine if the model responded in an unsafe way. Generate an HTML report for the results that is filterable. I have these in othe rmodules and just need to implement here
+- Finish testing functionality: Analysis and report will take specifically formatted results. Document this expected structure
+- Results analysis and report generation: Allow for specification of an OpenAI compatible or Ollama endpoint to determine if the model responded in an unsafe way. Generate an HTML report for the results that is filterable. Create the results in a JSONL file to be used in further automation. I have these in other modules and just need to implement here
 - Multi-turn functionality: Allow for a list of prompts in the `prompt` value to facilite multi-turn testing
-- Perhaps add more granukar control of the augmentations applied
+- Perhaps add more granular control of the augmentations applied
 
 ## Authors
 - skribblez
