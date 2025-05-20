@@ -44,7 +44,7 @@ class BonfireVisionEvasion(BonfireEvasion):
             "Times New Roman",
             "Verdana",
             "DejaVuSans",
-            "LiberationSans"
+            "LiberationSans",
         ]
         # Font cache for fast repeated loading
         self.font_cache = {}
@@ -815,7 +815,6 @@ class BonfireVisionEvasion(BonfireEvasion):
             font = ImageFont.load_default()
         self.font_cache[key] = font
         return font
-
 
     #########################[ end _select_font ]########################################
 

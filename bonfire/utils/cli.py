@@ -48,6 +48,8 @@ class BonfireCLI:
         # Attach sub-parsers
         BonfireCLI._build_generate_parser(subparsers, available_methods)
         BonfireCLI._build_test_parser(subparsers, available_methods)
+        BonfireCLI._build_analyze_parser(subparsers, available_methods)
+        BonfireCLI._build_report_parser(subparsers, available_methods)
 
         return parser
 
@@ -98,12 +100,60 @@ class BonfireCLI:
         """
         Create the *test* sub-command parser.
         """
-        test = subparsers.add_parser("test", help="Run a Python test file")
+        test = subparsers.add_parser(
+            "test",
+            help="Runs generate and then tests the payloads against the LLM via defined Python script in functions",
+        )
         BonfireCLI._add_shared_args(test, available_methods)
-        test.add_argument("test_file", help="Name of the test file to run you created in the functions directory")
+        test.add_argument(
+            "test_file",
+            help="Name of the test file to run you created in the functions directory",
+        )
         return test
 
     #########################[ end _build_test_parser ]##############################################
+
+    #########################[ start _build_analyze_parser ]##############################################
+    @staticmethod
+    def _build_analyze_parser(
+        subparsers: argparse._SubParsersAction, available_methods: List[str]
+    ) -> argparse.ArgumentParser:
+        """
+        Create the *analyze* sub-command parser (same options as test).
+        """
+        analyze = subparsers.add_parser(
+            "analyze",
+            help="Runs generate and then sends the results to a defined LLM for analysis",
+        )
+        BonfireCLI._add_shared_args(analyze, available_methods)
+        analyze.add_argument(
+            "test_file",
+            help="Name of the test file to analyze you created in the functions directory",
+        )
+        return analyze
+
+    #########################[ end _build_analyze_parser ]##############################################
+
+    #########################[ start _build_report_parser ]##############################################
+    @staticmethod
+    def _build_report_parser(
+        subparsers: argparse._SubParsersAction, available_methods: List[str]
+    ) -> argparse.ArgumentParser:
+        """
+        Create the *report* sub-command parser (same options as test).
+        """
+        report = subparsers.add_parser(
+            "report",
+            help="Runs generate, test and analyze then generates and HTML and JSONL report and save sthem to output_dir",
+        )
+        BonfireCLI._add_shared_args(report, available_methods)
+        report.add_argument(
+            "test_file",
+            help="Name of the test file to report on you created in the functions directory",
+        )
+        return report
+
+    #########################[ end _build_report_parser ]##############################################
 
 
 ###################################[ end BonfireCLI ]##############################################

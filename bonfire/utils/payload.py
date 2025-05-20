@@ -43,7 +43,9 @@ class BonfirePayloads:
             data_type: ``"text"``, ``"audio"``, or ``"image"``.
             fmt: Optional format hint for audio/image (e.g. ``"mp3"`` or ``"png"``).
         """
-        intents_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "intents.jsonl")
+        intents_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "data", "intents.jsonl"
+        )
         instructions = BonfirePayloads._load_jsonl_file(intents_path, logger)
 
         chosen = BonfirePayloads._parse_methods_arg(methods, available_methods, logger)
@@ -117,7 +119,9 @@ class BonfirePayloads:
         cleaned = raw_methods.lower().replace(" ", "")
         available_normalized = [m.lower().replace(" ", "") for m in available]
         chosen = available if cleaned == "all" else [m for m in cleaned.split(",") if m]
-        bad = [m for m in chosen if m.lower().replace(" ", "") not in available_normalized]
+        bad = [
+            m for m in chosen if m.lower().replace(" ", "") not in available_normalized
+        ]
         if bad:
             logger.error(f"Unknown method(s): {', '.join(bad)}")
             sys.exit(1)
