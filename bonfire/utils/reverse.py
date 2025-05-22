@@ -2,14 +2,14 @@ import random
 from typing import Dict
 
 
-###################################[ start BonfireTextEvasionReverse ]##############################################
+###################################[ start BonfireTextEvasionReverse ]###################################
 class BonfireTextEvasionReverse:
     """
     Class for text reversal evasion techniques.
     Contains methods for sentence reversal and word reversal.
     """
 
-    #########################[ start sentence_reverse_all ]##############################################
+    #########################[ start sentence_reverse_all ]#########################
     @staticmethod
     def sentence_reverse_all(text: str) -> str:
         """
@@ -25,9 +25,9 @@ class BonfireTextEvasionReverse:
         reversed_words = words[::-1]  # Reverse the list of words
         return " ".join(reversed_words)
 
-    #########################[ end sentence_reverse_all ]################################################
+    #########################[ end sentence_reverse_all ]###########################
 
-    #########################[ start sentence_reverse_random ]##############################################
+    #########################[ start sentence_reverse_random ]######################
     @staticmethod
     def sentence_reverse_random(text: str, probability: float = 0.7) -> str:
         """
@@ -57,9 +57,9 @@ class BonfireTextEvasionReverse:
 
         return ".".join(result)
 
-    #########################[ end sentence_reverse_random ]################################################
+    #########################[ end sentence_reverse_random ]#########################
 
-    #########################[ start word_reverse_random ]##############################################
+    #########################[ start word_reverse_random ]###########################
     @staticmethod
     def word_reverse_random(text: str, probability: float = 0.5) -> str:
         """
@@ -85,9 +85,9 @@ class BonfireTextEvasionReverse:
 
         return " ".join(result)
 
-    #########################[ end word_reverse_random ]################################################
+    #########################[ end word_reverse_random ]#############################
 
-    #########################[ start word_reverse_all ]##############################################
+    #########################[ start word_reverse_all ]##############################
     @staticmethod
     def word_reverse_all(text: str) -> str:
         """
@@ -109,7 +109,7 @@ class BonfireTextEvasionReverse:
 
         return " ".join(result)
 
-    #########################[ end word_reverse_all ]################################################
+    #########################[ end word_reverse_all ]################################
 
     _upside_down_chars: Dict[str, str] = {
         "a": "ɐ",
@@ -222,7 +222,7 @@ class BonfireTextEvasionReverse:
         "_": "‾",
     }
 
-    #########################[ start _convert_to_upside_dow]##############################################
+    #########################[ start _convert_to_upside_dow]#########################
     @staticmethod
     def _convert_to_upside_down(text: str) -> str:
         """
@@ -241,9 +241,9 @@ class BonfireTextEvasionReverse:
             )
         return upside_down_text
 
-    #########################[ end _convert_to_upside_down ]##############################################
+    #########################[ end _convert_to_upside_down ]#########################
 
-    #########################[ start word_upside_down_random ]##############################################
+    #########################[ start word_upside_down_random ]#######################
     @staticmethod
     def word_upside_down_random(text: str, probability: float = 0.5) -> str:
         """
@@ -271,9 +271,9 @@ class BonfireTextEvasionReverse:
 
         return " ".join(result)
 
-    #########################[ end word_upside_down_random ]################################################
+    #########################[ end word_upside_down_random ]#########################
 
-    #########################[ start word_upside_down_all ]##############################################
+    #########################[ start word_upside_down_all ]##########################
     @staticmethod
     def word_upside_down_all(text: str) -> str:
         """
@@ -295,9 +295,9 @@ class BonfireTextEvasionReverse:
 
         return " ".join(result)
 
-    #########################[ end word_upside_down_all ]################################################
+    #########################[ end word_upside_down_all ]#############################
 
-    #########################[ start char_upside_down_random ]##############################################
+    #########################[ start char_upside_down_random ]########################
     @staticmethod
     def char_upside_down_random(text: str, probability: float = 0.3) -> str:
         """
@@ -324,7 +324,7 @@ class BonfireTextEvasionReverse:
 
         return result
 
-    #########################[ end word_upside_down_all ]################################################
+    #########################[ end char_upside_down_random ]##########################
 
     _mirrored_chars: Dict[str, str] = {
         "a": "ɒ",
@@ -356,7 +356,7 @@ class BonfireTextEvasionReverse:
         " ": " ",
     }
 
-    #########################[ start _convert_to_mirrored ]##############################################
+    #########################[ start _convert_to_mirrored ]###########################
     @staticmethod
     def _convert_to_mirrored(text: str) -> str:
         """
@@ -373,9 +373,9 @@ class BonfireTextEvasionReverse:
             mirrored_text += BonfireTextEvasionReverse._mirrored_chars.get(char, char)
         return mirrored_text
 
-    #########################[ end _convert_to_mirrored ]##############################################
+    #########################[ end _convert_to_mirrored ]#############################
 
-    #########################[ start word_mirrored_random ]##############################################
+    #########################[ start word_mirrored_random ]###########################
     @staticmethod
     def word_mirrored_random(text: str, probability: float = 0.5) -> str:
         """
@@ -401,9 +401,9 @@ class BonfireTextEvasionReverse:
 
         return " ".join(result)
 
-    #########################[ end word_mirrored_random ]################################################
+    #########################[ end word_mirrored_random ]#############################
 
-    #########################[ start word_mirrored_all ]##############################################
+    #########################[ start word_mirrored_all ]##############################
     @staticmethod
     def word_mirrored_all(text: str) -> str:
         """
@@ -425,9 +425,9 @@ class BonfireTextEvasionReverse:
 
         return " ".join(result)
 
-    #########################[ end word_mirrored_all ]################################################
+    #########################[ end word_mirrored_all ]################################
 
-    #########################[ start char_mirrored_random ]##############################################
+    #########################[ start char_mirrored_random ]###########################
     @staticmethod
     def char_mirrored_random(text: str, probability: float = 0.3) -> str:
         """
@@ -454,7 +454,30 @@ class BonfireTextEvasionReverse:
 
         return result
 
-    #########################[ end char_mirrored_random ]################################################
+    #########################[ end char_mirrored_random ]#############################
+
+    #########################[ start char_mirrored_all ]##############################
+    @staticmethod
+    def char_mirrored_all(text: str) -> str:
+        """
+        Convert all characters to mirrored.
+
+        Args:
+            text: The text to augment
+
+        Returns:
+            str: The text with all characters converted to mirrored
+        """
+        result = ""
+
+        for char in text:
+            # Convert the character to mirrored
+            mirrored_char = BonfireTextEvasionReverse._mirrored_chars.get(char, char)
+            result += mirrored_char
+
+        return result
+
+    #########################[ end char_mirrored_all ]################################
 
 
-###################################[ end BonfireTextEvasionReverse ]##############################################
+###################################[ end BonfireTextEvasionReverse ]#####################################

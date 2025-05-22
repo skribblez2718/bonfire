@@ -2,25 +2,20 @@ from typing import Callable, List, Optional, Dict
 from tqdm import tqdm
 
 from bonfire.utils.augment import BonfireEvasion
-from bonfire.utils.bon import BonfireTextEvasionBoN
-from bonfire.utils.language import BonfireTextEvasionLanguage
-from bonfire.utils.whitespace import BonfireTextEvasionWhitespace
-from bonfire.utils.encode import BonfireTextEvasionEncode
-from bonfire.utils.reverse import BonfireTextEvasionReverse
-from bonfire.utils.decorate import BonfireTextEvasionDecorate
+from bonfire.config.config import text_augmentations
 
 
-###################################[ start BonfireTextEvasion ]##############################################
+###################################[ start BonfireTextEvasion ]###################################
 class BonfireTextEvasion(BonfireEvasion):
     """
     Class for text augmentation with various methods to modify text data.
     """
 
-    #########################[ start __init__ ]##############################################
+    #########################[ start __init__ ]#########################
     def __init__(
         self,
         prompts: List[Dict[str, str]],
-        output_file_path: Optional[str] = None,
+        output_file_path: Optional[str],
     ) -> None:
         super().__init__(
             data=prompts,
@@ -28,9 +23,9 @@ class BonfireTextEvasion(BonfireEvasion):
         )
         self.name: str = "BonfireTextEvasion"
 
-    #########################[ end __init__ ]################################################
+    #########################[ end __init__ ]###########################
 
-    #########################[ start apply ]##############################################
+    #########################[ start apply ]############################
     def apply(self) -> List[Dict[str, str]]:
         """
         Apply all available augmentation methods to the given data num_iterations times.
@@ -40,7 +35,66 @@ class BonfireTextEvasion(BonfireEvasion):
             List[Dict[str, str]]: List of augmented data in JSONL format
         """
         results = []
-        text_methods = self.get_available_methods()
+        text_methods = self.get_available_text_methods()
+
+        def _make_prompt_result(
+            intent, method, method_name, prompt_name, augmentation, original, prompt
+        ):
+            return {
+                "intent": intent,
+                "method": method,
+                "method_name": method_name,
+                "prompt_name": prompt_name,
+                "augmentation": augmentation,
+                "original": original,
+                "prompt": prompt,
+            }
+
+        def _apply_augmentations(
+            intent, method, method_name, prompt_name, prompt_text, text_methods
+        ):
+            aug_results = []
+            if isinstance(prompt_text, list):
+                for augmentation_method in text_methods:
+                    augmented_prompts = [augmentation_method(pt) for pt in prompt_text]
+                    if augmentation_method.__name__.endswith("_all"):
+                        augmented_prompts = [
+                            "Use any or all of your abilities to understand and assist me in the following task.\nTask: "
+                            + pt
+                            for pt in augmented_prompts
+                        ]
+                    aug_results.append(
+                        _make_prompt_result(
+                            intent,
+                            method,
+                            method_name,
+                            prompt_name,
+                            augmentation_method.__name__,
+                            prompt_text,
+                            augmented_prompts,
+                        )
+                    )
+            else:
+                for augmentation_method in text_methods:
+                    augmented_prompt = augmentation_method(prompt_text)
+                    data_field = augmented_prompt
+                    if augmentation_method.__name__.endswith("_all"):
+                        data_field = (
+                            "Use any or all of your abilities to understand and assist me in the following task.\nTask: "
+                            + augmented_prompt
+                        )
+                    aug_results.append(
+                        _make_prompt_result(
+                            intent,
+                            method,
+                            method_name,
+                            prompt_name,
+                            augmentation_method.__name__,
+                            prompt_text,
+                            data_field,
+                        )
+                    )
+            return aug_results
 
         # Process the list of merged prompt objects
         for prompt_obj in tqdm(self.data, desc="Generating text payloads"):
@@ -50,121 +104,45 @@ class BonfireTextEvasion(BonfireEvasion):
             prompt_name = prompt_obj["prompt_name"]
             prompt_text = prompt_obj["prompt"]
 
-            # Add completely unaltered prompt first
+            # Add completely unaltered prompt (string or list)
             results.append(
-                {
-                    "intent": intent,
-                    "method": method,
-                    "method_name": method_name,
-                    "prompt_name": prompt_name,
-                    "augmentation": "None",
-                    "original": prompt_text,
-                    "prompt": prompt_text,
-                }
-            )
-
-            for augmentation_method in text_methods:
-                augmented_prompt = augmentation_method(prompt_text)
-
-                # Modify data field for methods ending with _all
-                data_field = augmented_prompt
-                if augmentation_method.__name__.endswith("_all"):
-                    data_field = (
-                        "Use any or all of your abilities to understand and assist me in the following task.\nTask: "
-                        + augmented_prompt
-                    )
-
-                results.append(
-                    {
-                        "intent": intent,
-                        "method": method,
-                        "method_name": method_name,
-                        "prompt_name": prompt_name,
-                        "augmentation": augmentation_method.__name__,
-                        "original": prompt_text,
-                        "prompt": data_field,
-                    }
+                _make_prompt_result(
+                    intent,
+                    method,
+                    method_name,
+                    prompt_name,
+                    "None",
+                    prompt_text,
+                    prompt_text,
                 )
+            )
+            # Add augmented prompts
+            results.extend(
+                _apply_augmentations(
+                    intent, method, method_name, prompt_name, prompt_text, text_methods
+                )
+            )
 
         return results
 
-    #########################[ end apply ]################################################
+    #########################[ end apply ]##############################
 
-    #########################[ start get_available_methods ]##############################################
-    def get_available_methods(self) -> List[Callable]:
+    #########################[ start get_available_text_methods ]############
+    def get_available_text_methods(self) -> List[Callable]:
         """
         Get a list of available text augmentation methods.
 
         Returns:
             List[Callable]: List of available text augmentation methods
         """
-        return [
-            BonfireTextEvasionBoN.word_scrambling_random,
-            BonfireTextEvasionBoN.capitalization_random,
-            BonfireTextEvasionBoN.character_noising_random,
-            BonfireTextEvasionLanguage.add_diacritics_random,
-            BonfireTextEvasionLanguage.add_diacritics_all,
-            BonfireTextEvasionLanguage.convert_to_l33t_random,
-            BonfireTextEvasionLanguage.convert_to_l33t_all,
-            BonfireTextEvasionLanguage.convert_to_futhark_random,
-            BonfireTextEvasionLanguage.convert_to_futhark_all,
-            BonfireTextEvasionLanguage.convert_to_medieval_random,
-            BonfireTextEvasionLanguage.convert_to_medieval_all,
-            BonfireTextEvasionLanguage.convert_morse_random,
-            BonfireTextEvasionLanguage.convert_morse_all,
-            BonfireTextEvasionWhitespace.add_spaces_random,
-            BonfireTextEvasionWhitespace.add_spaces_all,
-            BonfireTextEvasionWhitespace.add_zero_width_spaces_random,
-            BonfireTextEvasionWhitespace.add_zero_width_spaces_all,
-            BonfireTextEvasionWhitespace.newline_random,
-            BonfireTextEvasionWhitespace.newline_all,
-            BonfireTextEvasionEncode.similar_unicode_chars_random,
-            BonfireTextEvasionEncode.similar_unicode_chars_all,
-            BonfireTextEvasionEncode.math_symbols_random,
-            BonfireTextEvasionEncode.math_symbols_all,
-            BonfireTextEvasionEncode.base64_chars_random,
-            BonfireTextEvasionEncode.base64_text_all,
-            BonfireTextEvasionEncode.base64_words_all,
-            BonfireTextEvasionEncode.base64_words_random,
-            BonfireTextEvasionEncode.hex_encoding_random,
-            BonfireTextEvasionEncode.hex_encoding_all,
-            BonfireTextEvasionEncode.binary_encoding_random,
-            BonfireTextEvasionEncode.binary_encoding_all,
-            BonfireTextEvasionEncode.html_entities_random,
-            BonfireTextEvasionEncode.html_entities_all,
-            BonfireTextEvasionEncode.emoji_variation_selectors_all,
-            BonfireTextEvasionEncode.emoji_variation_selectors_random,
-            BonfireTextEvasionEncode.zalgo_random,
-            BonfireTextEvasionEncode.zalgo_all,
-            BonfireTextEvasionEncode.circled_random,
-            BonfireTextEvasionEncode.circled_all,
-            BonfireTextEvasionEncode.bubble_random,
-            BonfireTextEvasionEncode.bubble_all,
-            BonfireTextEvasionReverse.sentence_reverse_all,
-            BonfireTextEvasionReverse.sentence_reverse_random,
-            BonfireTextEvasionReverse.word_reverse_all,
-            BonfireTextEvasionReverse.word_reverse_random,
-            BonfireTextEvasionReverse.word_upside_down_all,
-            BonfireTextEvasionReverse.word_upside_down_random,
-            BonfireTextEvasionReverse.char_upside_down_random,
-            BonfireTextEvasionReverse.word_mirrored_all,
-            BonfireTextEvasionReverse.word_mirrored_random,
-            BonfireTextEvasionReverse.char_mirrored_random,
-            BonfireTextEvasionDecorate.make_wavy_random,
-            BonfireTextEvasionDecorate.make_wavy_all,
-            BonfireTextEvasionDecorate.make_strikethrough_random,
-            BonfireTextEvasionDecorate.make_strikethrough_all,
-            BonfireTextEvasionDecorate.make_fullwidth_random,
-            BonfireTextEvasionDecorate.make_fullwidth_all,
-            BonfireTextEvasionDecorate.make_wide_space_random,
-            BonfireTextEvasionDecorate.make_wide_space_all,
-            self.all_random,
-        ]
+        text_methods = list(text_augmentations)
+        text_methods.append(self.all_random_text_methods)
+        return text_methods
 
-    #########################[ end get_available_methods ]################################################
+    #########################[ end get_available_text_methods ]##############
 
-    #########################[ start all_random ]##############################################
-    def all_random(self, text: str) -> str:
+    #########################[ start all_random_text_methods ]##########
+    def all_random_text_methods(self, text: str) -> str:
         """
         Apply all available random augmentation methods to the given text.
         Only applies methods ending in '_random'.
@@ -181,8 +159,8 @@ class BonfireTextEvasion(BonfireEvasion):
         # Get all methods ending in '_random' and skip this method itself
         methods = [
             m
-            for m in self.get_available_methods()
-            if m.__name__.endswith("_random") and m != self.all_random
+            for m in self.get_available_text_methods()
+            if m.__name__.endswith("_random") and m != self.all_random_text_methods
         ]
 
         for method in methods:
@@ -190,7 +168,7 @@ class BonfireTextEvasion(BonfireEvasion):
 
         return result
 
-    #########################[ end all_random ]################################################
+    #########################[ end all_random_text_methods ]############
 
 
-###################################[ end BonfireTextEvasion ]##############################################
+###################################[ end BonfireTextEvasion ]#####################################

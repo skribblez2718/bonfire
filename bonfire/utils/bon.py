@@ -2,13 +2,14 @@ import random
 from typing import List, Optional, Dict
 
 
+###################################[ start BonfireTextEvasionBoN ]###################################
 class BonfireTextEvasionBoN:
     """
-    Class for Bag of N-grams text evasion techniques.
+    Class for Best of N text evasion techniques.
     Contains methods for word scrambling, random capitalization, and character noising.
     """
 
-    #########################[ start word_scrambling_random ]##############################################
+    #########################[ start word_scrambling_random ]#########################
     @staticmethod
     def word_scrambling_random(text: str, probability: float = 0.6) -> str:
         """
@@ -39,9 +40,9 @@ class BonfireTextEvasionBoN:
 
         return " ".join(result)
 
-    #########################[ end word_scrambling_random ]################################################
+    #########################[ end word_scrambling_random ]###########################
 
-    #########################[ start capitalization_random ]##############################################
+    #########################[ start capitalization_random ]##########################
     @staticmethod
     def capitalization_random(text: str, probability: float = 0.6) -> str:
         """
@@ -68,9 +69,9 @@ class BonfireTextEvasionBoN:
 
         return result
 
-    #########################[ end capitalization_random ]################################################
+    #########################[ end capitalization_random ]############################
 
-    #########################[ start character_noising_random ]##############################################
+    #########################[ start character_noising_random ]#######################
     @staticmethod
     def character_noising_random(
         text: str,
@@ -152,4 +153,7 @@ class BonfireTextEvasionBoN:
 
         return result
 
-    #########################[ end character_noising_random ]################################################
+    #########################[ end character_noising_random ]#########################
+
+
+###################################[ end BonfireTextEvasionBoN ]#####################################

@@ -29,6 +29,7 @@ class BonfireResponseModel(BaseModel):
 ###################################[ end BonfireResponseModel ]#####################################
 
 
+###################################[ start BonfireValidate ]########################################
 class BonfireValidate:
     """
     Class for validating config and other values.
@@ -109,3 +110,6 @@ class BonfireValidate:
                 sys.exit(1)
 
     #########################[ end validate_env_vars ]#############################
+
+
+###################################[ end BonfireValidate ]##########################################

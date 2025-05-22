@@ -1,31 +1,28 @@
-import random
-import math
 import base64
+import math
 import io
-from typing import Callable, Optional, TypeVar, List, Dict, Any, Union, Tuple
-from tqdm import tqdm
+from typing import Callable, Optional, List, Dict, Any
 
+from tqdm import tqdm
 from PIL import Image, ImageDraw, ImageFont
 
 from bonfire.utils.augment import BonfireEvasion
 from bonfire.utils.logger import BonfireLogger
-
-# Define a type for image data
-ImageType = TypeVar("ImageType")
+from bonfire.config.config import image_augmentations, text_augmentations_for
 
 
-###################################[ start BonfireVisionEvasion ]##############################################
+###################################[ start BonfireVisionEvasion ]###################################
 class BonfireVisionEvasion(BonfireEvasion):
     """
     Class for vision augmentation with various methods to modify visual data.
     """
 
-    #########################[ start __init__ ]##############################################
+    #########################[ start __init__ ]#########################
     def __init__(
         self,
         prompts: List[Dict[str, Any]],
-        output_file_path: Optional[str] = None,
-        format: str = "png",
+        output_file_path: Optional[str],
+        format: str,
     ) -> None:
         # Initialize logger
         self.logger = BonfireLogger("BonfireVisionEvasion")
@@ -35,7 +32,7 @@ class BonfireVisionEvasion(BonfireEvasion):
             output_file_path=output_file_path,
         )
         self.name: str = "BonfireVisionEvasion"
-        self.format: str = format
+        self.format: str = format.lower()  # png | jpeg | gif
 
         # List of available fonts for text manipulation methods (reduced to common fonts)
         self.available_fonts = [
@@ -49,18 +46,19 @@ class BonfireVisionEvasion(BonfireEvasion):
         # Font cache for fast repeated loading
         self.font_cache = {}
 
-    #########################[ end __init__ ]################################################
+    #########################[ end __init__ ]###########################
 
-    #########################[ start apply ]################################################
+    #########################[ start apply ]############################
     def apply(self) -> List[Dict[str, Any]]:
         """
-        Apply all available augmentation methods to the given data
+        Apply all available text and image augmentation methods to the given data
 
         Returns:
             List of dictionaries describing original and augmented images.
         """
         results: List[Dict[str, Any]] = []
-        image_methods = self.get_available_methods()
+        image_methods = self.get_available_image_methods()
+        text_methods = self.get_available_text_methods()
 
         for prompt_obj in tqdm(self.data, desc="Generating vision payloads"):
             intent = prompt_obj["intent"]
@@ -69,471 +67,282 @@ class BonfireVisionEvasion(BonfireEvasion):
             prompt_name = prompt_obj["prompt_name"]
             prompt_text = prompt_obj["prompt"]
 
-            original_image_bytes = self.generate_image(prompt_text, self.format)
-            original_base64 = base64.b64encode(original_image_bytes).decode("utf-8")
-
-            # Unmodified baseline
-            results.append(
-                {
+            def _make_vision_result(
+                intent,
+                method,
+                method_name,
+                prompt_name,
+                text_augmentation,
+                image_augmentation,
+                original_text,
+                prompt_text,
+                original_image,
+                augmented_image,
+            ):
+                return {
                     "intent": intent,
                     "method": method,
                     "method_name": method_name,
                     "prompt_name": prompt_name,
-                    "image_augmentation": "None",
-                    "original_text": prompt_text,
+                    "text_augmentation": text_augmentation,
+                    "image_augmentation": image_augmentation,
+                    "original_text": original_text,
                     "prompt_text": prompt_text,
-                    "original_image": original_base64,
-                    "augmented_image": original_base64,
+                    "original_image": original_image,
+                    "augmented_image": augmented_image,
                 }
+
+            def _apply_vision_augmentations(
+                intent,
+                method,
+                method_name,
+                prompt_name,
+                prompt_text,
+                text_methods,
+                image_methods,
+            ):
+                aug_results = []
+                # ── 1. Prompt is a LIST ──────────────────────────────────
+                if isinstance(prompt_text, list):
+                    for text_method in text_methods:
+                        augmented_prompts = [text_method(pt) for pt in prompt_text]
+                        augmented_image_bytes_list = [
+                            self.generate_image(pt, self.format)
+                            for pt in augmented_prompts
+                        ]
+                        augmented_base64_list = [
+                            base64.b64encode(img).decode("utf-8")
+                            for img in augmented_image_bytes_list
+                        ]
+                        for image_method in image_methods:
+                            aug_img_base64_list = []
+                            for img_bytes, aug_prompt in zip(
+                                augmented_image_bytes_list, augmented_prompts
+                            ):
+                                try:
+                                    aug_bytes = image_method(
+                                        img_bytes,
+                                        prompt_text=aug_prompt,
+                                        logger=self.logger,
+                                    )
+                                    if aug_bytes is None:
+                                        self.logger.warning(
+                                            f"{image_method.__name__} returned None, skipping"
+                                        )
+                                        aug_img_base64_list.append(None)
+                                        continue
+                                    if isinstance(aug_bytes, bytes):
+                                        aug_img_base64 = base64.b64encode(
+                                            aug_bytes
+                                        ).decode("utf-8")
+                                        aug_img_base64_list.append(aug_img_base64)
+                                    else:
+                                        self.logger.warning(
+                                            f"{image_method.__name__} returned non-bytes, skipping"
+                                        )
+                                        aug_img_base64_list.append(None)
+                                        continue
+                                except Exception as exc:
+                                    self.logger.error(
+                                        f"Error applying {image_method.__name__}: {exc}"
+                                    )
+                                    aug_img_base64_list.append(None)
+                            aug_results.append(
+                                _make_vision_result(
+                                    intent,
+                                    method,
+                                    method_name,
+                                    prompt_name,
+                                    text_method.__name__,
+                                    image_method.__name__,
+                                    prompt_text,
+                                    augmented_prompts,
+                                    augmented_base64_list,
+                                    aug_img_base64_list,
+                                )
+                            )
+                # ── 2. Prompt is a STRING ───────────────────────────────
+                else:
+                    for text_method in text_methods:
+                        augmented_prompt = text_method(prompt_text)
+                        augmented_image_bytes = self.generate_image(
+                            augmented_prompt, self.format
+                        )
+                        augmented_base64 = base64.b64encode(
+                            augmented_image_bytes
+                        ).decode("utf-8")
+                        for image_method in image_methods:
+                            try:
+                                aug_bytes = image_method(
+                                    augmented_image_bytes,
+                                    prompt_text=augmented_prompt,
+                                    logger=self.logger,
+                                )
+                                if aug_bytes is None:
+                                    self.logger.warning(
+                                        f"{image_method.__name__} returned None, skipping"
+                                    )
+                                    continue
+                                if not isinstance(aug_bytes, bytes):
+                                    self.logger.warning(
+                                        f"{image_method.__name__} returned non-bytes, skipping"
+                                    )
+                                    continue
+                                aug_img_base64 = base64.b64encode(aug_bytes).decode(
+                                    "utf-8"
+                                )
+                                aug_results.append(
+                                    _make_vision_result(
+                                        intent,
+                                        method,
+                                        method_name,
+                                        prompt_name,
+                                        text_method.__name__,
+                                        image_method.__name__,
+                                        prompt_text,
+                                        augmented_prompt,
+                                        augmented_base64,
+                                        aug_img_base64,
+                                    )
+                                )
+                            except Exception as exc:
+                                self.logger.error(
+                                    f"Error applying {image_method.__name__}: {exc}"
+                                )
+                return aug_results
+
+            # ── Baseline (no augmentation) ──────────────────────────────
+            if isinstance(prompt_text, list):
+                original_image_bytes_list = [
+                    self.generate_image(pt, self.format) for pt in prompt_text
+                ]
+                original_base64_list = [
+                    base64.b64encode(img).decode("utf-8")
+                    for img in original_image_bytes_list
+                ]
+                results.append(
+                    _make_vision_result(
+                        intent,
+                        method,
+                        method_name,
+                        prompt_name,
+                        "None",
+                        "None",
+                        prompt_text,
+                        prompt_text,
+                        original_base64_list,
+                        original_base64_list,
+                    )
+                )
+            else:
+                original_image_bytes = self.generate_image(prompt_text, self.format)
+                original_base64 = base64.b64encode(original_image_bytes).decode("utf-8")
+                results.append(
+                    _make_vision_result(
+                        intent,
+                        method,
+                        method_name,
+                        prompt_name,
+                        "None",
+                        "None",
+                        prompt_text,
+                        prompt_text,
+                        original_base64,
+                        original_base64,
+                    )
+                )
+            # ── Augmented versions ───────────────────────────────────────
+            results.extend(
+                _apply_vision_augmentations(
+                    intent,
+                    method,
+                    method_name,
+                    prompt_name,
+                    prompt_text,
+                    text_methods,
+                    image_methods,
+                )
             )
-
-            # Augmentations
-            for augmentation_method in image_methods:
-                try:
-                    aug_bytes = augmentation_method(
-                        original_image_bytes, prompt_text=prompt_text
-                    )
-
-                    if aug_bytes is None:
-                        self.logger.warning(
-                            f"{augmentation_method.__name__} returned None, skipping"
-                        )
-                        continue
-
-                    if isinstance(aug_bytes, bytes):
-                        augmented_base64 = base64.b64encode(aug_bytes).decode("utf-8")
-                    else:
-                        self.logger.warning(
-                            f"{augmentation_method.__name__} returned non-bytes, skipping"
-                        )
-                        continue
-
-                    results.append(
-                        {
-                            "intent": intent,
-                            "method": method,
-                            "method_name": method_name,
-                            "prompt_name": prompt_name,
-                            "image_augmentation": augmentation_method.__name__,
-                            "original_text": prompt_text,
-                            "prompt_text": prompt_text,
-                            "original_image": original_base64,
-                            "augmented_image": augmented_base64,
-                        }
-                    )
-                except Exception as exc:  # pragma: no cover
-                    self.logger.error(
-                        f"Error applying {augmentation_method.__name__}: {exc}"
-                    )
 
         self.logger.info(f"Generated {len(results)} augmented images")
         return results
 
-    #########################[ end apply ]################################################
+    #########################[ end apply ]##############################
 
-    #########################[ start get_available_methods ]##############################################
-    def get_available_methods(self) -> List[Callable]:
+    #########################[ start get_available_image_methods ]######
+    def get_available_image_methods(self) -> List[Callable]:
         """
         Return a list of all augmentation callables.
         """
-        return [
-            self.change_text_font_all,
-            self.change_text_font_random,
-            self.change_text_color_all,
-            self.change_text_color_random,
-            self.change_text_position_all,
-            self.change_text_position_random,
-            self.change_text_size_all,
-            self.change_text_size_random,
-            self.change_background_pixels_all,
-            self.change_background_pixels_random,
-            self.change_background_color_all,
-            self.change_background_color_random,
-            self.all,
+        available_image_methods = list(image_augmentations)
+        available_image_methods.append(self.all_random_image_methods)
+        return available_image_methods
+
+    #########################[ end get_available_image_methods ]########
+
+    #########################[ start get_available_text_methods ]########
+    def get_available_text_methods(self) -> list:
+        """
+        Get a list of available text augmentation methods from config.
+        """
+        available_methods = list(text_augmentations_for["image"])
+        available_methods.append(self.all_random_text_methods)
+        return available_methods
+
+    #########################[ end get_available_text_methods ]##########
+
+    #########################[ start all_random_text_methods ]##########
+    def all_random_text_methods(self, text: str) -> str:
+        """
+        Apply all available random augmentation methods to the given text.
+        Only applies methods ending in '_random'.
+        """
+        result = text
+        methods = [
+            m
+            for m in self.get_available_text_methods()
+            if m.__name__.endswith("_random") and m != self.all_random_text_methods
         ]
-
-    #########################[ end get_available_methods ]################################################
-
-    #########################[ start change_text_font_all ]##############################################
-    def change_text_font_all(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Render the supplied text with a *single*, randomly-chosen font.
-        """
-        try:
-            canvas, draw, width, height = self._prepare_canvas(image)
-            text = prompt_text or ""
-            font = self._select_font(random.choice(self.available_fonts), 36)
-            pos = self._center_position(text, font, width, height)
-            draw.text(pos, text, fill="black", font=font)
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_text_font_all: %s", e)
-            return image
-
-    #########################[ end change_text_font_all ]################################################
-
-    #########################[ start change_text_font_random ]##############################################
-    def change_text_font_random(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Randomly vary the font of individual characters.
-        """
-        try:
-            canvas, draw, width, height = self._prepare_canvas(image)
-            text = prompt_text or ""
-            default_font = self._select_font("Arial", 36)
-
-            # Baseline starting point
-            bbox = default_font.getbbox(text)
-            current_x = (width - (bbox[2] - bbox[0])) // 2
-            start_y = (height - (bbox[3] - bbox[1])) // 2
-
-            for ch in text:
-                font = (
-                    self._select_font(random.choice(self.available_fonts), 36)
-                    if random.random() < 0.5
-                    else default_font
-                )
-                ch_w = font.getbbox(ch)[2] - font.getbbox(ch)[0]
-                draw.text((current_x, start_y), ch, fill="black", font=font)
-                current_x += ch_w
-
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_text_font_random: %s", e)
-            return image
-
-    #########################[ end change_text_font_random ]################################################
-
-    #########################[ start change_text_color_all ]##############################################
-    def change_text_color_all(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Render text with a single random colour.
-        """
-        try:
-            canvas, draw, width, height = self._prepare_canvas(image)
-            text = prompt_text or ""
-            font = self._select_font("Arial", 36)
-            colour = tuple(random.randint(0, 200) for _ in range(3))
-            draw.text(
-                self._center_position(text, font, width, height),
-                text,
-                fill=colour,
-                font=font,
-            )
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_text_color_all: %s", e)
-            return image
-
-    #########################[ end change_text_color_all ]################################################
-
-    #########################[ start change_text_color_random ]##############################################
-    def change_text_color_random(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Give each character a 50 % chance of being a random colour.
-        """
-        try:
-            canvas, draw, width, height = self._prepare_canvas(image)
-            text = prompt_text or ""
-            font = self._select_font("Arial", 36)
-
-            bbox = font.getbbox(text)
-            current_x = (width - (bbox[2] - bbox[0])) // 2
-            base_y = (height - (bbox[3] - bbox[1])) // 2
-
-            for ch in text:
-                colour = (0, 0, 0)
-                if random.random() < 0.5:
-                    colour = tuple(random.randint(0, 200) for _ in range(3))
-                ch_w = font.getbbox(ch)[2] - font.getbbox(ch)[0]
-                draw.text((current_x, base_y), ch, fill=colour, font=font)
-                current_x += ch_w
-
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_text_color_random: %s", e)
-            return image
-
-    #########################[ end change_text_color_random ]################################################
-
-    #########################[ start change_text_position_all ]##############################################
-    def change_text_position_all(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Move the entire string to a random position on the canvas.
-        """
-        try:
-            canvas, draw, width, height = self._prepare_canvas(image)
-            text = prompt_text or ""
-            font = self._select_font("Arial", 36)
-            text_w, text_h = font.getbbox(text)[2:]
-            margin = 20
-            pos_x = random.randint(margin, max(margin, width - text_w - margin))
-            pos_y = random.randint(margin, max(margin, height - text_h - margin))
-            draw.text((pos_x, pos_y), text, fill="black", font=font)
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_text_position_all: %s", e)
-            return image
-
-    #########################[ end change_text_position_all ]################################################
-
-    #########################[ start change_text_position_random ]##############################################
-    def change_text_position_random(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Randomly offset individual characters around the baseline.
-        """
-        try:
-            canvas, draw, width, height = self._prepare_canvas(image)
-            text = prompt_text or ""
-            font = self._select_font("Arial", 36)
-
-            bbox = font.getbbox(text)
-            current_x = (width - (bbox[2] - bbox[0])) // 2
-            base_y = (height - (bbox[3] - bbox[1])) // 2
-
-            for ch in text:
-                if random.random() < 0.5:
-                    offset_x = random.randint(-10, 10)
-                    offset_y = random.randint(-10, 10)
-                else:
-                    offset_x = offset_y = 0
-
-                draw.text(
-                    (current_x + offset_x, base_y + offset_y),
-                    ch,
-                    fill="black",
-                    font=font,
-                )
-                current_x += font.getbbox(ch)[2] - font.getbbox(ch)[0]
-
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_text_position_random: %s", e)
-            return image
-
-    #########################[ end change_text_position_random ]################################################
-
-    #########################[ start change_text_size_all ]##############################################
-    def change_text_size_all(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Render all characters at a single random size.
-        """
-        try:
-            canvas, draw, width, height = self._prepare_canvas(image)
-            text = prompt_text or ""
-            font = self._select_font("Arial", random.randint(20, 50))
-            draw.text(
-                self._center_position(text, font, width, height),
-                text,
-                fill="black",
-                font=font,
-            )
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_text_size_all: %s", e)
-            return image
-
-    #########################[ end change_text_size_all ]################################################
-
-    #########################[ start change_text_size_random ]##############################################
-    def change_text_size_random(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Vary character sizes randomly.
-        """
-        try:
-            canvas, draw, width, height = self._prepare_canvas(image)
-            text = prompt_text or ""
-            default_font = self._select_font("Arial", 36)
-
-            bbox = default_font.getbbox(text)
-            current_x = (width - (bbox[2] - bbox[0])) // 2
-            baseline_y = (height - (bbox[3] - bbox[1])) // 2
-
-            for ch in text:
-                if random.random() < 0.5:
-                    font = self._select_font("Arial", random.randint(20, 50))
-                else:
-                    font = default_font
-
-                ch_w = font.getbbox(ch)[2] - font.getbbox(ch)[0]
-                ch_h = font.getbbox(ch)[3] - font.getbbox(ch)[1]
-                y = baseline_y - (ch_h - (bbox[3] - bbox[1])) // 2
-                draw.text((current_x, y), ch, fill="black", font=font)
-                current_x += ch_w
-
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_text_size_random: %s", e)
-            return image
-
-    #########################[ end change_text_size_random ]################################################
-
-    #########################[ start change_background_pixels_all ]##############################################
-    def change_background_pixels_all(self, image: ImageType, **kwargs) -> ImageType:
-        """
-        Apply random noise to every pixel.
-        """
-        try:
-            img = Image.open(io.BytesIO(image))
-            new_img = Image.new("RGB", img.size)
-            pixels = []
-
-            for px in img.getdata():
-                if isinstance(px, tuple):
-                    noisy = tuple(
-                        min(255, max(0, c + random.randint(-50, 50))) for c in px[:3]
-                    )
-                    pixels.append(noisy + px[3:] if len(px) > 3 else noisy)
-                else:
-                    pixels.append(min(255, max(0, px + random.randint(-50, 50))))
-
-            new_img.putdata(pixels)
-            return self._finalise_image(new_img)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_background_pixels_all: %s", e)
-            return image
-
-    #########################[ end change_background_pixels_all ]################################################
-
-    #########################[ start change_background_pixels_random ]##############################################
-    def change_background_pixels_random(self, image: ImageType, **kwargs) -> ImageType:
-        """
-        Randomly perturb ~30 % of pixels.
-        """
-        try:
-            img = Image.open(io.BytesIO(image))
-            new_img = img.copy()
-            width, height = img.size
-            total = int(width * height * 0.3)
-
-            for _ in range(total):
-                x = random.randint(0, width - 1)
-                y = random.randint(0, height - 1)
-                px = img.getpixel((x, y))
-                if isinstance(px, tuple):
-                    noisy = tuple(
-                        min(255, max(0, c + random.randint(-70, 70))) for c in px[:3]
-                    )
-                    new_img.putpixel((x, y), noisy + px[3:] if len(px) > 3 else noisy)
-                elif isinstance(px, int):
-                    new_img.putpixel(
-                        (x, y), min(255, max(0, px + random.randint(-70, 70)))
-                    )
-
-            return self._finalise_image(new_img)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_background_pixels_random: %s", e)
-            return image
-
-    #########################[ end change_background_pixels_random ]################################################
-
-    #########################[ start change_background_color_all ]##############################################
-    def change_background_color_all(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Replace background with a uniform random colour.
-        """
-        try:
-            text = prompt_text or ""
-            img = Image.open(io.BytesIO(image))
-            width, height = img.size
-            bg_colour = tuple(random.randint(100, 255) for _ in range(3))
-            canvas = Image.new("RGB", (width, height), color=bg_colour)
-            draw = ImageDraw.Draw(canvas)
-            font = self._select_font("Arial", 36)
-            text_colour = tuple(255 - c for c in bg_colour)
-            draw.text(
-                self._center_position(text, font, width, height),
-                text,
-                fill=text_colour,
-                font=font,
-            )
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_background_color_all: %s", e)
-            return image
-
-    #########################[ end change_background_color_all ]################################################
-
-    #########################[ start change_background_color_random ]##############################################
-    def change_background_color_random(
-        self, image: ImageType, *, prompt_text: Optional[str] = None, **kwargs
-    ) -> ImageType:
-        """
-        Paint several random coloured rectangles behind the text.
-        """
-        try:
-            text = prompt_text or ""
-            img = Image.open(io.BytesIO(image))
-            width, height = img.size
-            canvas = Image.new("RGB", (width, height), color="white")
-            draw = ImageDraw.Draw(canvas)
-            font = self._select_font("Arial", 36)
-
-            for _ in range(random.randint(3, 7)):
-                colour = tuple(random.randint(100, 255) for _ in range(3))
-                rw, rh = random.randint(width // 5, width // 2), random.randint(
-                    height // 5, height // 2
-                )
-                rx, ry = random.randint(0, width - rw), random.randint(0, height - rh)
-                draw.rectangle([(rx, ry), (rx + rw, ry + rh)], fill=colour)
-
-            draw.text(
-                self._center_position(text, font, width, height),
-                text,
-                fill="black",
-                font=font,
-            )
-            return self._finalise_image(canvas)
-        except Exception as e:  # pragma: no cover
-            self.logger.error("change_background_color_random: %s", e)
-            return image
-
-    #########################[ end change_background_color_random ]################################################
-
-    #########################[ start all ]##############################################
-    def all(self, image: ImageType, **kwargs) -> ImageType:
-        """
-        Sequentially apply every augmentation (except this one).
-        Skips self.all to avoid infinite recursion (pattern from audio.py).
-        """
-        result = image
-        # Skip the 'all' method itself to avoid infinite recursion
-        methods = [m for m in self.get_available_methods() if m != self.all]
         for method in methods:
-            result = method(result, **kwargs)
+            result = method(result)
         return result
 
-    #########################[ end all ]################################################
+    #########################[ end all_random_text_methods ]############
 
-    #########################[ start generate_image ]##############################################
+    #########################[ start all_random_image_methods ]##########
+    def all_random_image_methods(
+        self,
+        image: bytes,
+        *,
+        prompt_text: Optional[str] = None,
+        logger: Optional[BonfireLogger] = None,
+    ) -> bytes:
+        """
+        Apply every *_random image-augmentation method in sequence.
+        """
+        result = image
+        methods = [
+            m
+            for m in self.get_available_image_methods()
+            if m.__name__.endswith("_random") and m != self.all_random_image_methods
+        ]
+        for method in methods:
+            try:
+                result = method(
+                    result, prompt_text=prompt_text, logger=logger or self.logger
+                )
+            except Exception as exc:  # pragma: no cover
+                (logger or self.logger).error(
+                    f"Error applying {method.__name__} inside all_random_image_methods: {exc}"
+                )
+        return result
+
+    #########################[ end all_random_image_methods ]############
+
+    #########################[ start generate_image ]####################
     def generate_image(self, text: str, format: str = "png") -> bytes:
         """
         Generate an image with the specified text based on the format.
-
-        Args:
-            text: The text to display in the image
-            format: The image format (png, jpeg, gif)
-
-        Returns:
-            bytes: The generated image as bytes
         """
         if format.lower() == "png":
             return self.generate_png(text)
@@ -541,13 +350,12 @@ class BonfireVisionEvasion(BonfireEvasion):
             return self.generate_jpeg(text)
         elif format.lower() == "gif":
             return self.generate_gif(text)
-        else:
-            # Default to PNG if format is not recognized
-            return self.generate_png(text)
+        # Fallback
+        return self.generate_png(text)
 
-    #########################[ end generate_image ]################################################
+    #########################[ end generate_image ]######################
 
-    #########################[ start generate_png ]##############################################
+    #########################[ start generate_png ]######################
     def generate_png(self, text: str) -> bytes:
         """
         Generate a PNG image with the specified text.
@@ -572,7 +380,8 @@ class BonfireVisionEvasion(BonfireEvasion):
             font = ImageFont.load_default()
 
         # Ensure text fits within the image width by adjusting font size if needed
-        self._ensure_text_fits(draw, text, font, width, height)
+        # self._ensure_text_fits(draw, text, font, width, height)
+        self._ensure_text_fits(text, font, width)
 
         # Draw text on the image (with wrapping if needed)
         self._draw_text_with_wrapping(draw, text, font, width, height)
@@ -582,9 +391,9 @@ class BonfireVisionEvasion(BonfireEvasion):
         image.save(buffer, format="PNG")
         return buffer.getvalue()
 
-    #########################[ end generate_png ]################################################
+    #########################[ end generate_png ]########################
 
-    #########################[ start generate_jpeg ]##############################################
+    #########################[ start generate_jpeg ]#####################
     def generate_jpeg(self, text: str) -> bytes:
         """
         Generate a JPEG image with the specified text.
@@ -617,8 +426,8 @@ class BonfireVisionEvasion(BonfireEvasion):
             font = ImageFont.load_default()
 
         # Ensure text fits within the image width by adjusting font size if needed
-        font = self._ensure_text_fits(draw, text, font, width, height)
-
+        # font = self._ensure_text_fits(draw, text, font, width, height)
+        font = self._ensure_text_fits(text, font, width)
         # Check if we need to wrap text
         bbox = font.getbbox(text)
         text_width = bbox[2] - bbox[0]
@@ -634,16 +443,16 @@ class BonfireVisionEvasion(BonfireEvasion):
             draw.text(position, text, fill="white", font=font)
         else:
             # Use the wrapping method with custom drawing for shadow effect
-            self._draw_text_with_wrapping_and_shadow(draw, text, font, width, height)
+            self.draw_wrapping_and_shadow(draw, text, font, width, height)
 
         # Save the image to a bytes buffer
         buffer = io.BytesIO()
         image.save(buffer, format="JPEG", quality=95)
         return buffer.getvalue()
 
-    #########################[ end generate_jpeg ]################################################
+    #########################[ end generate_jpeg ]#######################
 
-    #########################[ start generate_gif ]##############################################
+    #########################[ start generate_gif ]######################
     def generate_gif(self, text: str) -> bytes:
         """
         Generate an animated GIF with the specified text.
@@ -671,7 +480,8 @@ class BonfireVisionEvasion(BonfireEvasion):
         temp_draw = ImageDraw.Draw(temp_image)
 
         # Ensure text fits within the image width by adjusting font size if needed
-        font = self._ensure_text_fits(temp_draw, text, font, width, height)
+        # font = self._ensure_text_fits(temp_draw, text, font, width, height)
+        font = self._ensure_text_fits(text, font, width)
 
         # Check if we need to wrap text
         bbox = font.getbbox(text)
@@ -764,107 +574,16 @@ class BonfireVisionEvasion(BonfireEvasion):
         )
         return buffer.getvalue()
 
-    #########################[ end generate_gif ]################################################
+    #########################[ end generate_gif ]########################
 
-    #########################[ start _prepare_canvas ]########################################
-    def _prepare_canvas(
-        self,
-        image_bytes: bytes,
-        background_color: Union[str, Tuple[int, int, int]] = "white",
-    ) -> Tuple[Image.Image, ImageDraw.ImageDraw, int, int]:
-        """
-        Load bytes into an image and return a blank canvas (same size) plus a draw
-        context and its dimensions.
-
-        Args:
-            image_bytes: Raw image bytes.
-            background_color: Fill colour for the new canvas.
-
-        Returns:
-            Tuple containing (blank canvas image, draw context, width, height).
-        """
-        img = Image.open(io.BytesIO(image_bytes))
-        width, height = img.size
-        canvas = Image.new("RGB", (width, height), color=background_color)
-        draw = ImageDraw.Draw(canvas)
-        return canvas, draw, width, height
-
-    #########################[ end _prepare_canvas ]########################################
-
-    #########################[ start _select_font ]########################################
-    def _select_font(
-        self, font_name: str = "Arial", font_size: int = 36
-    ) -> ImageFont.FreeTypeFont:
-        """
-        Safely select a truetype font, falling back to the default font if the
-        requested face cannot be loaded. Uses a cache for efficiency.
-
-        Args:
-            font_name: Font family name.
-            font_size: Desired point size.
-
-        Returns:
-            A PIL ImageFont object.
-        """
-        key = (font_name, font_size)
-        if key in self.font_cache:
-            return self.font_cache[key]
-        try:
-            font = ImageFont.truetype(font_name, font_size)
-        except IOError:
-            font = ImageFont.load_default()
-        self.font_cache[key] = font
-        return font
-
-    #########################[ end _select_font ]########################################
-
-    #########################[ start _center_position ]########################################
-    def _center_position(
-        self, text: str, font: ImageFont.FreeTypeFont, width: int, height: int
-    ) -> Tuple[int, int]:
-        """
-        Calculate x, y coordinates that centre the supplied text.
-
-        Args:
-            text: The text string.
-            font: Font used to measure the text.
-            width: Canvas width.
-            height: Canvas height.
-
-        Returns:
-            Tuple of (x, y) coordinates.
-        """
-        bbox = font.getbbox(text)
-        text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        return (width - text_w) // 2, (height - text_h) // 2
-
-    #########################[ end _center_position ]########################################
-
-    #########################[ start _finalise_image ]########################################
-    def _finalise_image(self, img: Image.Image) -> bytes:
-        """
-        Convert a PIL Image into raw bytes using the class' configured format.
-
-        Args:
-            img: PIL Image instance.
-
-        Returns:
-            Image encoded as bytes.
-        """
-        buf = io.BytesIO()
-        img.save(buf, format=self.format.upper())
-        return buf.getvalue()
-
-    #########################[ end _finalise_image ]################################################
-
-    #########################[ start _ensure_text_fits ]##############################################
+    #########################[ start _ensure_text_fits ]#################
     def _ensure_text_fits(
         self,
-        draw: ImageDraw.Draw,
+        # draw: ImageDraw.Draw,
         text: str,
         font: ImageFont.FreeTypeFont,
         width: int,
-        height: int,
+        # height: int,
     ) -> ImageFont.FreeTypeFont:
         """
         Ensure text fits within the image by adjusting font size if needed.
@@ -881,7 +600,6 @@ class BonfireVisionEvasion(BonfireEvasion):
         """
         # Maximum width we want text to occupy (80% of image width)
         max_width = int(width * 0.8)
-        max_height = int(height * 0.8)
 
         # Check if text is too long for a single line
         bbox = font.getbbox(text)
@@ -905,9 +623,9 @@ class BonfireVisionEvasion(BonfireEvasion):
 
         return font
 
-    #########################[ end _ensure_text_fits ]################################################
+    #########################[ end _ensure_text_fits ]###################
 
-    #########################[ start _draw_text_with_wrapping ]##############################################
+    #########################[ start _draw_text_with_wrapping ]##########
     def _draw_text_with_wrapping(
         self,
         draw: ImageDraw.Draw,
@@ -985,11 +703,11 @@ class BonfireVisionEvasion(BonfireEvasion):
                 )
                 draw.text(position, line, fill="black", font=font)
 
-    #########################[ end _draw_text_with_wrapping ]################################################
+    #########################[ end _draw_text_with_wrapping ]############
 
-    #########################[ start _draw_text_with_wrapping_and_shadow ]##############################################
-    def _draw_text_with_wrapping_and_shadow(
-        self,
+    #########################[ start draw_wrapping_and_shadow ]##########
+    @staticmethod
+    def draw_wrapping_and_shadow(
         draw: ImageDraw.Draw,
         text: str,
         font: ImageFont.FreeTypeFont,
@@ -1054,7 +772,7 @@ class BonfireVisionEvasion(BonfireEvasion):
             # Draw text in white on top
             draw.text(position, line, fill="white", font=font)
 
-    #########################[ end _draw_text_with_wrapping_and_shadow ]################################################
+    #########################[ end draw_wrapping_and_shadow ]############
 
 
-###################################[ end BonfireVisionEvasion ]##############################################
+###################################[ end BonfireVisionEvasion ]#####################################

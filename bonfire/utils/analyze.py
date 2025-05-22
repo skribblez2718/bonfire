@@ -24,7 +24,7 @@ TEMPERATURE: float = 0.2
 TOP_P: float = 0.9
 
 
-###################################[  start BonfireAnalyze  ]##############################################
+###################################[  start BonfireAnalyze  ]###################################
 class BonfireAnalyze:
     """
     LLM-backed analyser supporting OpenAI-compatible, Azure OpenAI and Ollama models
@@ -32,7 +32,7 @@ class BonfireAnalyze:
     retry logic.
     """
 
-    #########################[  start send_request  ]##############################################
+    #########################[  start send_request  ]#########################
     @staticmethod
     def send_request(
         obj: Dict[str, Any], logger: "Logger"
@@ -99,9 +99,9 @@ class BonfireAnalyze:
             obj["reason"] = getattr(fallback_response, "reason", None)
             return obj
 
-    #########################[  end send_request  ]##############################################
+    #########################[  end send_request  ]###########################
 
-    #########################[  start _build_prompt  ]##############################################
+    #########################[  start _build_prompt  ]########################
     @staticmethod
     def _build_prompt(obj: Dict[str, Any]) -> str:
         """Return the final user prompt injected into the template."""
@@ -114,9 +114,9 @@ class BonfireAnalyze:
             response_text=response_text,
         )
 
-    #########################[  end _build_prompt  ]##############################################
+    #########################[  end _build_prompt  ]##########################
 
-    #########################[  start _build_httpx_client  ]##############################################
+    #########################[  start _build_httpx_client  ]##################
     @staticmethod
     def _build_httpx_client() -> httpx.Client:
         """
@@ -135,9 +135,9 @@ class BonfireAnalyze:
             verify=ssl_ctx, timeout=TIMEOUT, trust_env=False
         )  # verify accepts an SSLContext:contentReference[oaicite:2]{index=2}
 
-    #########################[  end _build_httpx_client  ]##############################################
+    #########################[  end _build_httpx_client  ]###################
 
-    #########################[  start _invoke_with_retry  ]#########################
+    #########################[  start _invoke_with_retry  ]##################
     @staticmethod
     def _invoke_with_retry(
         fn, fn_args: Tuple[Any, ...], logger: "Logger", max_retries: int = 3
@@ -166,9 +166,9 @@ class BonfireAnalyze:
             time.sleep(delay)
         return None
 
-    #########################[  end _invoke_with_retry  ]#########################
+    #########################[  end _invoke_with_retry  ]####################
 
-    #########################[  start _extract_json  ]#########################
+    #########################[  start _extract_json  ]#######################
     _JSON_RE = re.compile(r"\{.*?\}", re.DOTALL)
 
     @classmethod
@@ -182,9 +182,9 @@ class BonfireAnalyze:
         match = cls._JSON_RE.search(cleaned)
         return match.group() if match else cleaned
 
-    #########################[  end _extract_json  ]##############################################
+    #########################[  end _extract_json  ]#########################
 
-    #########################[  start _call_openai  ]##############################################
+    #########################[  start _call_openai  ]########################
     @staticmethod
     def _call_openai(prompt_body: str, client: httpx.Client) -> str:
         """
@@ -201,9 +201,9 @@ class BonfireAnalyze:
         ai_msg: AIMessage = llm.invoke(messages)
         return BonfireAnalyze._extract_json(ai_msg.content)
 
-    #########################[  end _call_openai  ]##############################################
+    #########################[  end _call_openai  ]##########################
 
-    #########################[  start _call_azure_openai  ]##############################################
+    #########################[  start _call_azure_openai  ]##################
     @staticmethod
     def _call_azure_openai(prompt_body: str) -> str:
         """
@@ -221,9 +221,9 @@ class BonfireAnalyze:
         ai_msg: AIMessage = llm.invoke(messages)
         return BonfireAnalyze._extract_json(ai_msg.content)
 
-    #########################[  end _call_azure_openai  ]##############################################
+    #########################[  end _call_azure_openai  ]####################
 
-    #########################[  start _call_ollama  ]##############################################
+    #########################[  start _call_ollama  ]########################
     @staticmethod
     def _call_ollama(prompt_body: str, client: httpx.Client) -> str:
         """
@@ -241,15 +241,15 @@ class BonfireAnalyze:
         ai_msg: AIMessage = llm.invoke(messages)
         return BonfireAnalyze._extract_json(ai_msg.content)
 
-    #########################[  end _call_ollama  ]##############################################
+    #########################[  end _call_ollama  ]##########################
 
-    #########################[  start _fallback_response  ]##############################################
+    #########################[  start _fallback_response  ]##################
     @staticmethod
     def _fallback_response(reason: str) -> BonfireResponseModel:
         """Return a uniform fallback response with an explanatory reason."""
         return BonfireResponseModel(result="unknown", reason=reason)
 
-    #########################[  end _fallback_response  ]##############################################
+    #########################[  end _fallback_response  ]####################
 
 
-###################################[  End BonfireAnalyze  ]##############################################
+###################################[  End BonfireAnalyze  ]#####################################

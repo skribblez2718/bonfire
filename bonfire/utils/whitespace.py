@@ -2,7 +2,7 @@ import random
 from typing import List
 
 
-###################################[ start BonfireTextEvasionWhitespace ]##############################################
+###################################[ start BonfireTextEvasionWhitespace ]###################################
 class BonfireTextEvasionWhitespace:
     """
     Class for whitespace-based text evasion techniques.
@@ -10,7 +10,7 @@ class BonfireTextEvasionWhitespace:
     Both random (probability-based) and all (applied to all eligible characters) versions are provided.
     """
 
-    #########################[ start add_spaces_random ]##############################################
+    #########################[ start add_spaces_random ]#########################
     @staticmethod
     def add_spaces_random(text: str, probability: float = 0.15) -> str:
         """
@@ -33,9 +33,9 @@ class BonfireTextEvasionWhitespace:
 
         return "".join(result)
 
-    #########################[ end add_spaces_random ]################################################
+    #########################[ end add_spaces_random ]###########################
 
-    #########################[ start add_spaces_all ]##############################################
+    #########################[ start add_spaces_all ]###########################
     @staticmethod
     def add_spaces_all(text: str) -> str:
         """
@@ -56,9 +56,9 @@ class BonfireTextEvasionWhitespace:
 
         return "".join(result)
 
-    #########################[ end add_spaces_all ]################################################
+    #########################[ end add_spaces_all ]###########################
 
-    #########################[ start add_zero_width_spaces_random ]##############################################
+    #########################[ start add_zero_width_spaces_random ]###########
     @staticmethod
     def add_zero_width_spaces_random(text: str, probability: float = 0.25) -> str:
         """
@@ -82,9 +82,9 @@ class BonfireTextEvasionWhitespace:
 
         return "".join(result)
 
-    #########################[ end add_zero_width_spaces_random ]################################################
+    #########################[ end add_zero_width_spaces_random ]#############
 
-    #########################[ start add_zero_width_spaces_all ]##############################################
+    #########################[ start add_zero_width_spaces_all ]##############
     @staticmethod
     def add_zero_width_spaces_all(text: str) -> str:
         """
@@ -106,9 +106,9 @@ class BonfireTextEvasionWhitespace:
 
         return "".join(result)
 
-    #########################[ end add_zero_width_spaces_all ]################################################
+    #########################[ end add_zero_width_spaces_all ]################
 
-    #########################[ start newline_random ]##############################################
+    #########################[ start newline_random ]#########################
     @staticmethod
     def newline_random(text: str, probability: float = 0.2) -> str:
         """
@@ -144,9 +144,9 @@ class BonfireTextEvasionWhitespace:
 
         return " ".join(result)
 
-    #########################[ end newline_random ]################################################
+    #########################[ end newline_random ]###########################
 
-    #########################[ start newline_all ]##############################################
+    #########################[ start newline_all ]############################
     @staticmethod
     def newline_all(text: str) -> str:
         """
@@ -178,7 +178,7 @@ class BonfireTextEvasionWhitespace:
 
         return " ".join(result)
 
-    #########################[ end newline_all ]################################################
+    #########################[ end newline_all ]##############################
 
 
-###################################[ end BonfireTextEvasionWhitespace ]##############################################
+###################################[ end BonfireTextEvasionWhitespace ]#####################################

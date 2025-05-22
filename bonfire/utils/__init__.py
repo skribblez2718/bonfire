@@ -9,6 +9,7 @@ from bonfire.utils.analyze import BonfireAnalyze
 from bonfire.utils.validate import BonfireValidate
 from bonfire.utils.report import BonfireReport
 from bonfire.utils.result import BonfireResult
+from bonfire.utils.image import BonfireImageManipulate
 
 __all__ = [
     "BonfireLogger",
@@ -22,4 +23,5 @@ __all__ = [
     "BonfireValidate",
     "BonfireReport",
     "BonfireResult",
+    "BonfireImageManipulate",
 ]

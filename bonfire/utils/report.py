@@ -4,15 +4,15 @@ from bonfire.utils.file import BonfireFile
 from bonfire.utils.result import BonfireResult
 
 
-###################################[ start BonfireReport ]##############################################
+###################################[ start BonfireReport ]###################################
 class BonfireReport:
     """
     Class for generating reports from Bonfire analysis results.
     """
 
-    #########################[ start generate_reports_for_analysis_file ]#########################
+    #########################[ start generate ]#########################
     @staticmethod
-    def generate_reports_for_analysis_file(
+    def generate(
         analysis_jsonl_path: str, output_dir: str, logger: "BonfireLogger"
     ) -> None:
         """
@@ -31,25 +31,44 @@ class BonfireReport:
             )
             return
         # Group by intent if present
+        # Extract type (data_type) and use new naming convention
         base, ext = os.path.splitext(os.path.basename(analysis_jsonl_path))
+        # Expecting something like bonfire_{type}_analysis_{intent}.jsonl
+        parts = base.split("_")
+        if len(parts) >= 3 and parts[0] == "bonfire":
+            data_type = parts[1]
+        else:
+            data_type = "unknown"
 
         #########################[ start post_process ]##############################################
         def post_process(intent_results, file_path, intent, logger):
-            report_html_path = os.path.join(output_dir, f"{base}_report.html")
+            # Save JSONL report in the same directory as file_path (intent directory)
+            report_base, _ = os.path.splitext(os.path.basename(file_path))
+            report_jsonl_path = os.path.join(
+                os.path.dirname(file_path), f"{report_base}.jsonl"
+            )
+            BonfireFile.save(intent_results, report_jsonl_path)
+
+            # Save HTML report in the same directory as file_path (intent directory)
+            report_html_path = os.path.join(
+                os.path.dirname(file_path), f"{report_base}.html"
+            )
             BonfireFile.generate_html_report(intent_results, report_html_path, logger)
-            logger.info(f"Generated report files: {file_path}, {report_html_path}")
-            
+            logger.info(
+                f"Generated report files: {report_jsonl_path}, {report_html_path}"
+            )
+
         #########################[ end post_process ]################################################
-        
+
         BonfireResult.save_by_intent(
             results,
             output_dir,
-            filename_format=f"{base}_report{ext}",
+            filename_format=f"bonfire_{data_type}_report_{{intent}}{ext}",
             logger=logger,
-            post_process=post_process
+            post_process=post_process,
         )
 
-    #########################[ end generate_reports_for_analysis_file ]#########################
+    #########################[ end generate ]###########################
 
 
 #########################[ end BonfireReport ]################################################

@@ -2,7 +2,7 @@ import random
 from typing import Dict, List
 
 
-###################################[ start BonfireTextEvasionLanguage ]##############################################
+###################################[ start BonfireTextEvasionLanguage ]###################################
 class BonfireTextEvasionLanguage:
     """
     Class for language-based text evasion techniques.
@@ -44,7 +44,7 @@ class BonfireTextEvasionLanguage:
         "Z": ["Ź", "Ž", "Ż"],
     }
 
-    #########################[ start add_diacritics_random ]##############################################
+    #########################[ start add_diacritics_random ]#########################
     @staticmethod
     def add_diacritics_random(text: str, probability: float = 0.3) -> str:
         """
@@ -73,9 +73,9 @@ class BonfireTextEvasionLanguage:
 
         return "".join(result)
 
-    #########################[ end add_diacritics_random ]################################################
+    #########################[ end add_diacritics_random ]###########################
 
-    #########################[ start add_diacritics_all ]##############################################
+    #########################[ start add_diacritics_all ]############################
     @staticmethod
     def add_diacritics_all(text: str) -> str:
         """
@@ -100,7 +100,7 @@ class BonfireTextEvasionLanguage:
 
         return "".join(result)
 
-    #########################[ end add_diacritics_all ]################################################
+    #########################[ end add_diacritics_all ]##############################
 
     # Define l33t speak mapping
     _l33t_map: Dict[str, List[str]] = {
@@ -132,7 +132,7 @@ class BonfireTextEvasionLanguage:
         "z": ["2", "7_", "%", ">_"],
     }
 
-    #########################[ start convert_to_l33t_random ]##############################################
+    #########################[ start convert_to_l33t_random ]########################
     @staticmethod
     def convert_to_l33t_random(text: str, probability: float = 0.7) -> str:
         """
@@ -170,9 +170,9 @@ class BonfireTextEvasionLanguage:
 
         return " ".join(result)
 
-    #########################[ end convert_to_l33t_random ]################################################
+    #########################[ end convert_to_l33t_random ]##########################
 
-    #########################[ start convert_to_l33t_all ]##############################################
+    #########################[ start convert_to_l33t_all ]##########################
     @staticmethod
     def convert_to_l33t_all(text: str) -> str:
         """
@@ -198,7 +198,7 @@ class BonfireTextEvasionLanguage:
 
         return "".join(result)
 
-    #########################[ end convert_to_l33t_all ]################################################
+    #########################[ end convert_to_l33t_all ]############################
 
     _futhark_char: Dict[str, str] = {
         "a": "ᚨ",
@@ -256,7 +256,7 @@ class BonfireTextEvasionLanguage:
         " ": " ",
     }
 
-    #########################[ start convert_to_futhark_random ]##############################################
+    #########################[ start convert_to_futhark_random ]####################
     @staticmethod
     def convert_to_futhark_random(text: str, probability: float = 0.7) -> str:
         """
@@ -291,9 +291,9 @@ class BonfireTextEvasionLanguage:
 
         return " ".join(result)
 
-    #########################[ end convert_to_futhark_random ]################################################
+    #########################[ end convert_to_futhark_random ]######################
 
-    #########################[ start convert_to_futhark_all ]##############################################
+    #########################[ start convert_to_futhark_all ]#######################
     @staticmethod
     def convert_to_futhark_all(text: str) -> str:
         """
@@ -316,7 +316,7 @@ class BonfireTextEvasionLanguage:
 
         return "".join(result)
 
-    #########################[ end convert_to_futhark_all ]################################################
+    #########################[ end convert_to_futhark_all ]#########################
 
     _medieval_chars: Dict[str, str] = {
         "a": "𝔞",
@@ -384,7 +384,7 @@ class BonfireTextEvasionLanguage:
         " ": " ",
     }
 
-    #########################[ start convert_to_medieval_random ]##############################################
+    #########################[ start convert_to_medieval_random ]###################
     @staticmethod
     def convert_to_medieval_random(text: str, probability: float = 0.5) -> str:
         """
@@ -410,9 +410,9 @@ class BonfireTextEvasionLanguage:
 
         return "".join(result)
 
-    #########################[ end convert_to_medieval_random ]################################################
+    #########################[ end convert_to_medieval_random ]#####################
 
-    #########################[ start convert_to_medieval_all ]##############################################
+    #########################[ start convert_to_medieval_all ]######################
     @staticmethod
     def convert_to_medieval_all(text: str) -> str:
         """
@@ -434,7 +434,7 @@ class BonfireTextEvasionLanguage:
 
         return "".join(result)
 
-    #########################[ end convert_to_medieval_all ]################################################
+    #########################[ end convert_to_medieval_all ]########################
 
     _morse_code: Dict[str, str] = {
         "a": ".-",
@@ -476,7 +476,7 @@ class BonfireTextEvasionLanguage:
         " ": " ",
     }
 
-    #########################[ start convert_morse_random ]##############################################
+    #########################[ start convert_morse_random ]#########################
     @staticmethod
     def convert_morse_random(text: str, probability: float = 0.5) -> str:
         """
@@ -502,9 +502,9 @@ class BonfireTextEvasionLanguage:
 
         return "".join(result)
 
-    #########################[ end convert_morse_random ]################################################
+    #########################[ end convert_morse_random ]###########################
 
-    #########################[ start convert_morse_all ]##############################################
+    #########################[ start convert_morse_all ]############################
     @staticmethod
     def convert_morse_all(text: str) -> str:
         """
@@ -526,7 +526,7 @@ class BonfireTextEvasionLanguage:
 
         return "".join(result)
 
-    #########################[ end convert_morse_all ]################################################
+    #########################[ end convert_morse_all ]##############################
 
 
-###################################[ end BonfireTextEvasionLanguage ]##############################################
+###################################[ end BonfireTextEvasionLanguage ]#####################################

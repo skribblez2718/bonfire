@@ -19,7 +19,7 @@ from bonfire.utils import (
 load_dotenv()
 
 
-###################################[ start main ]##############################################
+###################################[ start main ]###################################
 def main() -> None:
     """
     Entrypoint for the Bonfire CLI.
@@ -63,14 +63,14 @@ def main() -> None:
             test_file_py = test_file
             test_file = test_file[:-3]
 
-        functions_dir = os.path.join(os.path.dirname(__file__), "functions")
+        functions_dir = os.path.join(os.path.dirname(__file__), "function")
 
         test_file_basename = os.path.basename(test_file_py)
         test_path = os.path.join(functions_dir, test_file_basename)
 
         if not os.path.isfile(test_path):
             logger.error(
-                f"Test file '{test_file_basename}' not found in 'functions' directory."
+                f"Test file '{test_file_basename}' not found in 'function' directory."
             )
             sys.exit(1)
 
@@ -101,39 +101,35 @@ def main() -> None:
             sys.exit(1)
 
         # Write test results to output_dir, grouped by intent, as JSONL (one file per intent)
-        results_by_intent = {}
-        for res in results:
-            intent = res.get("intent", "unknown")
-            if intent not in results_by_intent:
-                results_by_intent[intent] = []
-            results_by_intent[intent].append(res)
-        for intent, intent_results in results_by_intent.items():
-            test_filename = f"bonfire_{args.data_type}_tests_{intent}.jsonl"
-            test_filepath = os.path.join(args.output_dir, test_filename)
-            BonfireFile.save(intent_results, test_filepath)
-            logger.info(f"Test results for intent '{intent}' saved to: {test_filepath}")
+        BonfireResult.save_by_intent(
+            results,
+            args.output_dir,
+            filename_format=f"bonfire_{args.data_type}_tests_{{intent}}.jsonl",
+            logger=logger,
+        )
 
     if args.command in ["analyze", "report"]:
-        analysis_results = [BonfireAnalyze.send_request(result, logger) for result in results]
+        analysis_results = [
+            BonfireAnalyze.send_request(result, logger) for result in results
+        ]
         BonfireResult.save_by_intent(
             analysis_results,
             args.output_dir,
             filename_format=f"bonfire_{args.data_type}_analysis_{{intent}}.jsonl",
-            logger=logger
+            logger=logger,
         )
 
     if args.command == "report":
-        pattern = os.path.join(args.output_dir, "bonfire_*_analysis_*.jsonl")
+        # Look for analysis files in output_dir/{intent} subdirectories
+        pattern = os.path.join(args.output_dir, "*", "bonfire_*_analysis_*.jsonl")
         analysis_files = glob.glob(pattern)
         if not analysis_files:
             logger.warning(
-                f"No analysis files found in {args.output_dir} matching 'bonfire_*_analysis_*.jsonl'."
+                f"No analysis files found in any {args.output_dir}/{{intent}} matching 'bonfire_*_analysis_*.jsonl'."
             )
-        
+
         for analysis_file in analysis_files:
-            BonfireReport.generate_reports_for_analysis_file(
-                analysis_file, args.output_dir, logger
-            )
+            BonfireReport.generate(analysis_file, args.output_dir, logger)
 
 
-###################################[ end main ]##############################################
+###################################[ end main ]#####################################

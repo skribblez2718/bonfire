@@ -2,7 +2,7 @@ import random
 from typing import List
 
 
-###################################[ start BonfireTextEvasionDecorate ]##############################################
+###################################[ start BonfireTextEvasionDecorate ]###################################
 class BonfireTextEvasionDecorate:
     """
     Class for decorating text with various diacritics and stylistic elements.
@@ -10,7 +10,7 @@ class BonfireTextEvasionDecorate:
 
     _waves: List[str] = ["̾", "͂", "̽", "͌"]
 
-    #########################[ start make_wavy_random ]##############################################
+    #########################[ start make_wavy_random ]#########################
     @staticmethod
     def make_wavy_random(text: str, probability: float = 0.15) -> str:
         """
@@ -39,9 +39,9 @@ class BonfireTextEvasionDecorate:
 
         return "".join(result)
 
-    #########################[ end make_wavy_random ]################################################
+    #########################[ end make_wavy_random ]###########################
 
-    #########################[ start make_wavy_all ]##############################################
+    #########################[ start make_wavy_all ]############################
     @staticmethod
     def make_wavy_all(text: str) -> str:
         """
@@ -66,9 +66,9 @@ class BonfireTextEvasionDecorate:
 
         return "".join(result)
 
-    #########################[ end make_wavy_all ]################################################
+    #########################[ end make_wavy_all ]##############################
 
-    #########################[ start make_strikethrough_random ]##############################################
+    #########################[ start make_strikethrough_random ]################
     @staticmethod
     def make_strikethrough_random(text: str, probability: float = 0.15) -> str:
         """
@@ -96,9 +96,9 @@ class BonfireTextEvasionDecorate:
 
         return "".join(result)
 
-    #########################[ end make_strikethrough_random ]################################################
+    #########################[ end make_strikethrough_random ]###################
 
-    #########################[ start make_strikethrough_all ]##############################################
+    #########################[ start make_strikethrough_all ]####################
     @staticmethod
     def make_strikethrough_all(text: str) -> str:
         """
@@ -122,9 +122,9 @@ class BonfireTextEvasionDecorate:
 
         return "".join(result)
 
-    #########################[ end make_strikethrough_all ]################################################
+    #########################[ end make_strikethrough_all ]######################
 
-    #########################[ start make_fullwidth_random ]##############################################
+    #########################[ start make_fullwidth_random ]#####################
     @staticmethod
     def make_fullwidth_random(text: str, probability: float = 0.15) -> str:
         """
@@ -156,9 +156,9 @@ class BonfireTextEvasionDecorate:
 
         return "".join(result)
 
-    #########################[ end make_fullwidth_random ]################################################
+    #########################[ end make_fullwidth_random ]#######################
 
-    #########################[ start make_fullwidth_all ]##############################################
+    #########################[ start make_fullwidth_all ]########################
     @staticmethod
     def make_fullwidth_all(text: str) -> str:
         """
@@ -186,9 +186,9 @@ class BonfireTextEvasionDecorate:
 
         return "".join(result)
 
-    #########################[ end make_fullwidth_all ]################################################
+    #########################[ end make_fullwidth_all ]##########################
 
-    #########################[ start make_wide_space_random ]##############################################
+    #########################[ start make_wide_space_random ]####################
     @staticmethod
     def make_wide_space_random(text: str, probability: float = 0.15) -> str:
         """
@@ -227,9 +227,9 @@ class BonfireTextEvasionDecorate:
 
         return "".join(result)
 
-    #########################[ end make_wide_space_random ]################################################
+    #########################[ end make_wide_space_random ]######################
 
-    #########################[ start make_wide_space_all ]##############################################
+    #########################[ start make_wide_space_all ]#######################
     @staticmethod
     def make_wide_space_all(text: str) -> str:
         """
@@ -260,7 +260,7 @@ class BonfireTextEvasionDecorate:
 
         return "".join(result)
 
-    #########################[ end make_wide_space_all ]################################################
+    #########################[ end make_wide_space_all ]#########################
 
 
-###################################[ end BonfireTextEvasionDecorate ]##############################################
+###################################[ end BonfireTextEvasionDecorate ]#####################################

@@ -1,4 +1,6 @@
 import requests
+import time
+
 from typing import List, Dict
 
 
@@ -15,21 +17,21 @@ def run_test(payloads: List[Dict[str, str]]):
     # Initial GET request to establish session and cookies
     session.get(base_url)
     results = []
-    count = 0
     for payload in payloads:
         # Define the form data
         data = {"defender": "baseline", "prompt": payload["prompt"]}
 
         # Send the POST request with form data
         response = session.post(f"{base_url}/api/send-message", data=data)
-        response_json = response.json()
+        try:
+            response_json = response.json()
+        except:
+            response_json = response.text
 
         payload["response"] = response_json["answer"]
         results.append(payload)
-        count += 1
-        if count == 3:
-            break
 
+        time.sleep(3)
 
     return results
 

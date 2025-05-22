@@ -4,15 +4,17 @@ import html
 
 from typing import List, Dict, Any
 
+from .file_utils import make_json_serializable
 
-###################################[ start BonfireFile ]##############################################
+
+###################################[ start BonfireFile ]###################################
 class BonfireFile:
     """
     Utility class for file operations in Bonfire.
     Handles saving and loading JSONL files.
     """
 
-    #########################[ start save ]################################################
+    #########################[ start save ]#########################
     @staticmethod
     def save(data: List[Dict[str, Any]], file_path: str) -> None:
         """
@@ -32,11 +34,12 @@ class BonfireFile:
         # Write data as JSONL
         with open(file_path, "w") as f:
             for item in data:
-                f.write(json.dumps(item) + "\n")
+                serializable_item = make_json_serializable(item)
+                f.write(json.dumps(serializable_item) + "\n")
 
-    #########################[ end save ]################################################
+    #########################[ end save ]###########################
 
-    #########################[ start load ]################################################
+    #########################[ start load ]#########################
     @staticmethod
     def load(file_path: str) -> List[Dict[str, Any]]:
         """
@@ -73,9 +76,9 @@ class BonfireFile:
 
         return data
 
-    #########################[ end load ]################################################
+    #########################[ end load ]###########################
 
-    #########################[ start generate_html_report]####################
+    #########################[ start generate_html_report]##########
     @staticmethod
     def generate_html_report(
         results: List[Dict[str, Any]],
@@ -84,18 +87,14 @@ class BonfireFile:
     ) -> None:
         """
         Generates an HTML report of processed results with collapsible result entries.
-        The title and header include the formatted intent from the first result.
-        Each result card uses a green shadow for 'pass', red for 'fail', and yellow for 'unknown'.
-        A header row displays counts of Passed, Failed, and Unknown results in green, red, and yellow,
-        respectively. Under those counts, five inline radio buttons allow filtering:
-        "Show All", "Show Only Passed", "Show Only Failed", "Show Only Unknown", and
-        "Show Only Failed and Unknown". A client-side script filters the visible result cards
-        based on the selection. The prompt and response are HTML-escaped and wrapped in a <pre>
-        element to maintain the original formatting and avoid HTML breakage.
-        Parameters:
-            results (List[Dict[str, Any]]): List of processed result objects.
-            output_path (str): The file path to write the HTML report.
-            logger (Logger): Logger instance for logging messages.
+
+        Args:
+            results: List of dictionaries containing the processed results.
+            output_path: Path to the output HTML file.
+            logger: Logger instance for logging messages.
+
+        Returns:
+            None
         """
 
         # Use the intent from the first result to create the report title.
@@ -310,7 +309,7 @@ class BonfireFile:
         except Exception as e:
             logger.error(f"Error writing HTML report to {output_path}: {e}")
 
-    #########################[ end generate_html_report]######################
+    #########################[ end generate_html_report]############
 
 
-###################################[ end BonfireFile ]##############################################
+###################################[ end BonfireFile ]#####################################

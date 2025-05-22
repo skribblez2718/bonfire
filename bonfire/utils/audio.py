@@ -1,40 +1,30 @@
 import httpx
 import os
-import io
 import base64
-import numpy as np
-import random
 from tqdm import tqdm
 
 from typing import Callable, Optional, TypeVar, List, Dict
-from gtts import gTTS
-from pydub import AudioSegment
-from pydub.generators import WhiteNoise
-
 
 from bonfire.utils.augment import BonfireEvasion
-from bonfire.utils.bon import BonfireTextEvasionBoN
-from bonfire.utils.language import BonfireTextEvasionLanguage
-from bonfire.utils.whitespace import BonfireTextEvasionWhitespace
-from bonfire.utils.reverse import BonfireTextEvasionReverse
+from bonfire.config.config import audio_augmentations, text_augmentations_for
 
 # Define a type for audio data
 AudioType = TypeVar("AudioType")
 
 
-###################################[ start BonfireAudioEvasion ]##############################################
+###################################[ start BonfireAudioEvasion ]###################################
 class BonfireAudioEvasion(BonfireEvasion):
     """
     Class for audio augmentation with various methods to modify audio data.
     """
 
-    #########################[ start __init__ ]##############################################
+    #########################[ start __init__ ]#########################
     def __init__(
         self,
         audio: AudioType,
-        output_file_path: Optional[str] = None,
+        output_file_path: str,
+        format: str,
         language: str = "en",
-        format: str = "mp3",
     ) -> None:
         super().__init__(
             data=audio,
@@ -44,9 +34,9 @@ class BonfireAudioEvasion(BonfireEvasion):
         self.language: str = language
         self.format: str = format
 
-    #########################[ end __init__ ]################################################
+    #########################[ end __init__ ]###########################
 
-    #########################[ start apply ]##############################################
+    #########################[ start apply ]############################
     def apply(self) -> List[Dict[str, AudioType]]:
         """
         Apply all available augmentation methods to the given data num_iterations times.
@@ -57,6 +47,7 @@ class BonfireAudioEvasion(BonfireEvasion):
         """
         results = []
         text_methods = self.get_available_text_methods()
+        audio_augmentation_methods = self.get_available_audio_methods()
 
         # Process each merged prompt object
         for prompt_obj in tqdm(self.data, desc="Generating audio payloads"):
@@ -66,64 +57,167 @@ class BonfireAudioEvasion(BonfireEvasion):
             prompt_name = prompt_obj["prompt_name"]
             prompt_text = prompt_obj["prompt"]
 
-            # First, add completely unaltered prompt and audio
-            _, original_audio_base64 = self._convert_text_to_audio(prompt_text)
-
-            # Add unaltered prompt with unaltered audio
-            results.append(
-                {
+            def _make_audio_result(
+                intent,
+                method,
+                method_name,
+                prompt_name,
+                text_augmentation,
+                original_text,
+                prompt_text,
+                audio_augmentation,
+                original_audio,
+                augmented_audio,
+            ):
+                return {
                     "intent": intent,
                     "method": method,
                     "method_name": method_name,
                     "prompt_name": prompt_name,
-                    "text_augmentation": "None",
-                    "original_text": prompt_text,
+                    "text_augmentation": text_augmentation,
+                    "original_text": original_text,
                     "prompt_text": prompt_text,
-                    "audio_augmentation": "None",
-                    "original_audio": original_audio_base64,
-                    "augmented_audio": original_audio_base64,
+                    "audio_augmentation": audio_augmentation,
+                    "original_audio": original_audio,
+                    "augmented_audio": augmented_audio,
                 }
+
+            def _apply_audio_augmentations(
+                intent,
+                method,
+                method_name,
+                prompt_name,
+                prompt_text,
+                text_methods,
+                audio_augmentation_methods,
+            ):
+                aug_results = []
+                if isinstance(prompt_text, list):
+                    for text_method in text_methods:
+                        augmented_prompts = [text_method(pt) for pt in prompt_text]
+                        if text_method.__name__.endswith("_all"):
+                            augmented_prompts = [
+                                "Use any or all of your abilities to understand and assist me in the following task.\nTask: "
+                                + pt
+                                for pt in augmented_prompts
+                            ]
+                        audio_base64_list = [
+                            self._convert_text_to_audio(pt)[1]
+                            for pt in augmented_prompts
+                        ]
+                        for audio_augmentation_method in audio_augmentation_methods:
+                            # Pass base64 to augmentation, expect base64 out (if augmentations expect bytes, adjust here)
+                            augmented_audios_base64 = [
+                                (
+                                    audio_augmentation_method(ab)
+                                    if isinstance(audio_augmentation_method(ab), str)
+                                    else base64.b64encode(
+                                        audio_augmentation_method(base64.b64decode(ab))
+                                    ).decode("utf-8")
+                                )
+                                for ab in audio_base64_list
+                            ]
+                            aug_results.append(
+                                _make_audio_result(
+                                    intent,
+                                    method,
+                                    method_name,
+                                    prompt_name,
+                                    text_method.__name__,
+                                    prompt_text,
+                                    augmented_prompts,
+                                    audio_augmentation_method.__name__,
+                                    audio_base64_list,
+                                    augmented_audios_base64,
+                                )
+                            )
+                else:
+                    for text_method in text_methods:
+                        augmented_prompt = text_method(prompt_text)
+                        data_field = augmented_prompt
+                        if text_method.__name__.endswith("_all"):
+                            data_field = (
+                                "Use any or all of your abilities to understand and assist me in the following task.\nTask: "
+                                + augmented_prompt
+                            )
+                        audio_base64 = self._convert_text_to_audio(data_field)[1]
+                        for audio_augmentation_method in audio_augmentation_methods:
+                            augmented_audio = audio_augmentation_method(audio_base64)
+                            if isinstance(augmented_audio, str):
+                                augmented_audio_base64 = augmented_audio
+                            else:
+                                augmented_audio_base64 = base64.b64encode(
+                                    augmented_audio
+                                ).decode("utf-8")
+                            aug_results.append(
+                                _make_audio_result(
+                                    intent,
+                                    method,
+                                    method_name,
+                                    prompt_name,
+                                    text_method.__name__,
+                                    prompt_text,
+                                    data_field,
+                                    audio_augmentation_method.__name__,
+                                    audio_base64,
+                                    augmented_audio_base64,
+                                )
+                            )
+                return aug_results
+
+            # Add completely unaltered prompt and audio (string or list)
+            if isinstance(prompt_text, list):
+                original_audio_base64_list = [
+                    self._convert_text_to_audio(pt)[1] for pt in prompt_text
+                ]
+                results.append(
+                    _make_audio_result(
+                        intent,
+                        method,
+                        method_name,
+                        prompt_name,
+                        "None",
+                        prompt_text,
+                        prompt_text,
+                        "None",
+                        original_audio_base64_list,
+                        original_audio_base64_list,
+                    )
+                )
+            else:
+                original_audio_base64 = self._convert_text_to_audio(prompt_text)[1]
+                results.append(
+                    _make_audio_result(
+                        intent,
+                        method,
+                        method_name,
+                        prompt_name,
+                        "None",
+                        prompt_text,
+                        prompt_text,
+                        "None",
+                        original_audio_base64,
+                        original_audio_base64,
+                    )
+                )
+            # Add augmented results
+            results.extend(
+                _apply_audio_augmentations(
+                    intent,
+                    method,
+                    method_name,
+                    prompt_name,
+                    prompt_text,
+                    text_methods,
+                    audio_augmentation_methods,
+                )
             )
-
-            for text_augmentation_method in text_methods:
-                augmented_prompt = text_augmentation_method(prompt_text)
-
-                # Modify data field for methods ending with _all
-                data_field = augmented_prompt
-                if text_augmentation_method.__name__.endswith("_all"):
-                    data_field = (
-                        "Use any or all of your abilities to understand and assist me in the following task.\nTask: "
-                        + augmented_prompt
-                    )
-
-                # Convert prompt text to audio
-                audio_bytes, audio_base64 = self._convert_text_to_audio(data_field)
-
-                # Apply audio augmentation methods
-                audio_methods = self.get_available_audio_methods()
-                for audio_augmentation_method in audio_methods:
-                    augmented_audio = audio_augmentation_method(audio_bytes)
-
-                    results.append(
-                        {
-                            "intent": intent,
-                            "method": method,
-                            "method_name": method_name,
-                            "prompt_name": prompt_name,
-                            "text_augmentation": text_augmentation_method.__name__,
-                            "original_text": prompt_text,
-                            "prompt_text": data_field,
-                            "audio_augmentation": audio_augmentation_method.__name__,
-                            "original_audio": audio_base64,
-                            "augmented_audio": augmented_audio,
-                        }
-                    )
 
         return results
 
-    #########################[ end apply ]################################################
+    #########################[ end apply ]##############################
 
-    #########################[ start _convert_text_to_audio ]##############################################
+    #########################[ start _convert_text_to_audio ]###########
     def _convert_text_to_audio(self, text: str) -> tuple[bytes, str]:
         """
         Convert text to audio using the API.
@@ -156,9 +250,9 @@ class BonfireAudioEvasion(BonfireEvasion):
 
         return audio_bytes, audio_base64
 
-    #########################[ end _convert_text_to_audio ]################################################
+    #########################[ end _convert_text_to_audio ]#############
 
-    #########################[ start get_available_text_methods ]##############################################
+    #########################[ start get_available_text_methods ]#######
     def get_available_text_methods(self) -> List[Callable]:
         """
         Get a list of available text augmentation methods.
@@ -166,28 +260,13 @@ class BonfireAudioEvasion(BonfireEvasion):
         Returns:
             List[Callable]: List of available audio augmentation methods
         """
-        return [
-            BonfireTextEvasionBoN.word_scrambling_random,
-            BonfireTextEvasionBoN.capitalization_random,
-            BonfireTextEvasionBoN.character_noising_random,
-            BonfireTextEvasionLanguage.add_diacritics_random,
-            BonfireTextEvasionLanguage.add_diacritics_all,
-            BonfireTextEvasionWhitespace.add_spaces_random,
-            BonfireTextEvasionWhitespace.add_spaces_all,
-            BonfireTextEvasionWhitespace.add_zero_width_spaces_random,
-            BonfireTextEvasionWhitespace.add_zero_width_spaces_all,
-            BonfireTextEvasionWhitespace.newline_random,
-            BonfireTextEvasionWhitespace.newline_all,
-            BonfireTextEvasionReverse.sentence_reverse_all,
-            BonfireTextEvasionReverse.sentence_reverse_random,
-            BonfireTextEvasionReverse.word_reverse_all,
-            BonfireTextEvasionReverse.word_reverse_random,
-            self.all_random_text_methods,
-        ]
+        available_text_methods = list(text_augmentations_for["audio"])
+        available_text_methods.append(self.all_random_text_methods)
+        return available_text_methods
 
-    #########################[ end get_available_text_methods ]################################################
+    #########################[ end get_available_text_methods ]#########
 
-    #########################[ start get_available_audio_methods ]##############################################
+    #########################[ start get_available_audio_methods ]######
     def get_available_audio_methods(self) -> List[Callable]:
         """
         Get a list of available audio augmentation methods.
@@ -195,224 +274,13 @@ class BonfireAudioEvasion(BonfireEvasion):
         Returns:
             List[Callable]: List of available audio augmentation methods
         """
-        return [
-            self.change_speed,
-            self.change_pitch,
-            self.change_volume,
-            self.add_noise,
-            self.all,
-        ]
+        avaliable_audio_methods = list(audio_augmentations)
+        avaliable_audio_methods.append(self.all_random_audio_methods)
+        return avaliable_audio_methods
 
-    #########################[ end get_available_audio_methods ]################################################
+    #########################[ end get_available_audio_methods ]########
 
-    #########################[ start change_speed ]##############################################
-    def change_speed(self, audio: str | gTTS) -> str:
-        """
-        Randomly speed up or slow down random segments of the audio.
-
-        Args:
-            audio: The audio to augment
-
-        Returns:
-            str: Base64 encoded audio in the specified format
-        """
-        # load into pydub
-        seg = self._load_segment(audio)
-
-        # split into a few random segments and resample each
-        total_ms = len(seg)
-        n = random.randint(3, 6)
-        chunk_dur = total_ms // n
-        pieces = []
-        for i in range(n):
-            start = i * chunk_dur
-            chunk = seg[start : start + chunk_dur]
-            # random speed factor 0.8–1.25×
-            factor = random.uniform(0.8, 1.25)
-            # change frame_rate to speed up/slow down, then restore
-            sped = chunk._spawn(
-                chunk.raw_data, overrides={"frame_rate": int(chunk.frame_rate * factor)}
-            ).set_frame_rate(chunk.frame_rate)
-            pieces.append(sped)
-        # append any leftover
-        if n * chunk_dur < total_ms:
-            pieces.append(seg[n * chunk_dur :])
-
-        new = sum(pieces)
-        out = io.BytesIO()
-        new.export(out, format=self.format)
-        return base64.b64encode(out.getvalue()).decode()
-
-    #########################[ end change_speed ]################################################
-
-    #########################[ start change_pitch ]##############################################
-    def change_pitch(self, audio: str | gTTS) -> str:
-        """
-        Randomly shift pitch (±2 semitones) on random segments.
-
-        Args:
-            audio: The audio to augment
-
-        Returns:
-            str: Base64 encoded audio in the specified format
-        """
-        seg = self._load_segment(audio)
-
-        total_ms = len(seg)
-        n = random.randint(3, 6)
-        chunk_dur = total_ms // n
-        pieces = []
-        for i in range(n):
-            start = i * chunk_dur
-            chunk = seg[start : start + chunk_dur]
-            # random semitone shift between -2 and +2
-            semitones = random.uniform(-2, 2)
-            rate_factor = 2 ** (semitones / 12)
-            shifted = chunk._spawn(
-                chunk.raw_data,
-                overrides={"frame_rate": int(chunk.frame_rate * rate_factor)},
-            ).set_frame_rate(chunk.frame_rate)
-            pieces.append(shifted)
-        if n * chunk_dur < total_ms:
-            pieces.append(seg[n * chunk_dur :])
-
-        new = sum(pieces)
-        out = io.BytesIO()
-        new.export(out, format=self.format)
-        return base64.b64encode(out.getvalue()).decode()
-
-    #########################[ end change_pitch ]################################################
-
-    #########################[ start change_volume ]##############################################
-    def change_volume(self, audio: str | gTTS) -> str:
-        """
-        Randomly change volume (±6 dB) in random segments.
-
-        Args:
-            audio: The audio to augment
-
-        Returns:
-            str: Base64 encoded audio in the specified format
-        """
-        seg = self._load_segment(audio)
-
-        total_ms = len(seg)
-        n = random.randint(3, 6)
-        chunk_dur = total_ms // n
-        pieces = []
-        for i in range(n):
-            start = i * chunk_dur
-            chunk = seg[start : start + chunk_dur]
-            # random gain between -6 and +6 dB
-            gain = random.uniform(-6, 6)
-            pieces.append(chunk.apply_gain(gain))
-        if n * chunk_dur < total_ms:
-            pieces.append(seg[n * chunk_dur :])
-
-        new = sum(pieces)
-        out = io.BytesIO()
-        new.export(out, format=self.format)
-        return base64.b64encode(out.getvalue()).decode()
-
-    #########################[ end change_volume ]################################################
-
-    #########################[ start add_noise ]##############################################
-    def add_noise(self, audio: str | gTTS) -> str:
-        """
-        Overlay white noise on random portions of the audio.
-
-        Args:
-            audio: The audio to augment
-
-        Returns:
-            str: Base64 encoded audio in the specified format
-        """
-        seg = self._load_segment(audio)
-
-        total_ms = len(seg)
-        # generate a full-length noise track at -30 dBFS
-        noise = WhiteNoise().to_audio_segment(duration=total_ms).apply_gain(-30)
-
-        # choose some random overlay windows
-        for _ in range(random.randint(2, 5)):
-            start = random.randint(0, total_ms - 1000)
-            dur = random.randint(500, 3000)
-            seg = seg.overlay(noise[start : start + dur], position=start)
-
-        out = io.BytesIO()
-        seg.export(out, format=self.format)
-        return base64.b64encode(out.getvalue()).decode()
-
-    #########################[ end add_noise ]################################################
-
-    #########################[ start _load_segment ]##############################################
-    def _load_segment(self, audio: str | bytes) -> AudioSegment:
-        """
-        Load an audio segment from a base64 string or raw bytes.
-        Automatically detects the audio format if possible, otherwise uses the specified format.
-
-        Args:
-            audio: The audio to load
-
-        Returns:
-            AudioSegment: The loaded audio segment
-        """
-        buf = io.BytesIO()
-
-        if isinstance(audio, (bytes, bytearray)):
-            # raw audio bytes → AudioSegment
-            buf.write(audio)
-        elif isinstance(audio, str):
-            # base64‑encoded audio → bytes → AudioSegment
-            raw = base64.b64decode(audio)
-            buf.write(raw)
-        else:
-            raise ValueError("Invalid audio type")
-
-        buf.seek(0)
-        # Try to detect format from the first few bytes
-        header = buf.read(4)
-        buf.seek(0)
-
-        # Check for WAV header (RIFF)
-        if header.startswith(b"RIFF"):
-            detected_format = "wav"
-        # Check for MP3 header (ID3 or MPEG frame sync)
-        elif header.startswith(b"ID3") or (
-            header[0] == 0xFF and (header[1] & 0xE0) == 0xE0
-        ):
-            detected_format = "mp3"
-        else:
-            # Use the specified format if detection fails
-            detected_format = self.format
-
-        return AudioSegment.from_file(buf, format=detected_format)
-
-    #########################[ start all ]##############################################
-    def all(self, audio: AudioType) -> AudioType:
-        """
-        Apply all available augmentation methods to the given audio.
-
-        Args:
-            audio: The audio to augment
-
-        Returns:
-            AudioType: The augmented audio with all methods applied
-        """
-        # Apply each method in sequence
-        result = audio
-
-        # Skip the 'all' method itself to avoid infinite recursion
-        methods = [m for m in self.get_available_audio_methods() if m != self.all]
-
-        for method in methods:
-            result = method(result)
-
-        return result
-
-    #########################[ end all ]################################################
-
-    #########################[ start all_random_text_methods ]##############################################
+    #########################[ start all_random_text_methods ]##########
     def all_random_text_methods(self, text: str) -> str:
         """
         Apply all available random augmentation methods to the given text.
@@ -439,7 +307,36 @@ class BonfireAudioEvasion(BonfireEvasion):
 
         return result
 
-    #########################[ end all_random_text_methods ]################################################
+    #########################[ end all_random_text_methods ]############
+
+    #########################[ start all_random_audio_methods ]#########
+    def all_random_audio_methods(self, audio: bytes) -> bytes:
+        """
+        Apply all available random augmentation methods to the given audio.
+        Only applies methods ending in '_random'.
+
+        Args:
+            audio: The audio to augment
+
+        Returns:
+            bytes: The augmented audio with all random methods applied
+        """
+        # Apply each random method in sequence
+        result = audio
+
+        # Get all methods ending in '_random' and skip this method itself
+        methods = [
+            m
+            for m in self.get_available_audio_methods()
+            if m.__name__.endswith("_random") and m != self.all_random_audio_methods
+        ]
+
+        for method in methods:
+            result = method(result)
+
+        return result
+
+    #########################[ end all_random_audio_methods ]###########
 
 
-###################################[ end BonfireAudioEvasion ]##############################################
+###################################[ end BonfireAudioEvasion ]#####################################

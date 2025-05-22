@@ -4,7 +4,7 @@ import re
 from typing import List, Dict
 
 
-###################################[ start BonfireTextEvasionEncode ]##############################################
+###################################[ start BonfireTextEvasionEncode ]###################################
 class BonfireTextEvasionEncode:
     """
     Class for encoding-based text evasion techniques.
@@ -42,7 +42,7 @@ class BonfireTextEvasionEncode:
         "z": ["ѕ", "ѕ", "ѕ", "ѕ"],
     }
 
-    #########################[ start similar_unicode_chars_random ]##############################################
+    #########################[ start similar_unicode_chars_random ]#########################
     @staticmethod
     def similar_unicode_chars_random(text: str, probability: float = 0.3) -> str:
         """
@@ -69,9 +69,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end similar_unicode_chars_random ]################################################
+    #########################[ end similar_unicode_chars_random ]###########################
 
-    #########################[ start similar_unicode_chars_all ]##############################################
+    #########################[ start similar_unicode_chars_all ]############################
     @staticmethod
     def similar_unicode_chars_all(text: str) -> str:
         """
@@ -94,7 +94,7 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end similar_unicode_chars_all ]################################################
+    #########################[ end similar_unicode_chars_all ]##############################
 
     # List of math symbols to use for augmentation
     _math_symbols: List[str] = [
@@ -117,7 +117,7 @@ class BonfireTextEvasionEncode:
         "∫",
     ]
 
-    #########################[ start math_symbols_random ]##############################################
+    #########################[ start math_symbols_random ]##################################
     @staticmethod
     def math_symbols_random(text: str, probability: float = 0.2) -> str:
         """
@@ -138,9 +138,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end math_symbols_random ]################################################
+    #########################[ end math_symbols_random ]####################################
 
-    #########################[ start math_symbols_all ]##############################################
+    #########################[ start math_symbols_all ]#####################################
     @staticmethod
     def math_symbols_all(text: str) -> str:
         """
@@ -159,9 +159,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end math_symbols_all ]################################################
+    #########################[ end math_symbols_all ]#######################################
 
-    #########################[ start base64_random ]##############################################
+    #########################[ start base64_random ]########################################
     @staticmethod
     def base64_chars_random(text: str, probability: float = 0.4) -> str:
         """
@@ -185,9 +185,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end base64_random ]################################################
+    #########################[ end base64_random ]##########################################
 
-    #########################[ start base64_text_all ]##############################################
+    #########################[ start base64_text_all ]######################################
     @staticmethod
     def base64_text_all(text: str) -> str:
         """
@@ -201,9 +201,9 @@ class BonfireTextEvasionEncode:
         """
         return base64.b64encode(text.encode()).decode()
 
-    #########################[ end base64_text_all ]################################################
+    #########################[ end base64_text_all ]########################################
 
-    #########################[ start base64_words_all ]##############################################
+    #########################[ start base64_words_all ]#####################################
     @staticmethod
     def base64_words_all(text: str) -> str:
         """
@@ -230,9 +230,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end base64_words_all ]################################################
+    #########################[ end base64_words_all ]#######################################
 
-    #########################[ start base64_words_random ]##############################################
+    #########################[ start base64_words_random ]##################################
     @staticmethod
     def base64_words_random(text: str, probability: float = 0.5) -> str:
         """
@@ -260,9 +260,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end base64_words_random ]################################################
+    #########################[ end base64_words_random ]#####################################
 
-    #########################[ start hex_encoding_random ]##############################################
+    #########################[ start hex_encoding_random ]###################################
     @staticmethod
     def hex_encoding_random(text: str, probability: float = 0.4) -> str:
         """
@@ -286,9 +286,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end hex_encoding_random ]################################################
+    #########################[ end hex_encoding_random ]#####################################
 
-    #########################[ start hex_encoding_all ]##############################################
+    #########################[ start hex_encoding_all ]######################################
     @staticmethod
     def hex_encoding_all(text: str) -> str:
         """
@@ -308,9 +308,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end hex_encoding_all ]################################################
+    #########################[ end hex_encoding_all ]########################################
 
-    #########################[ start binary_encoding_random ]##############################################
+    #########################[ start binary_encoding_random ]################################
     @staticmethod
     def binary_encoding_random(text: str, probability: float = 0.4) -> str:
         """
@@ -334,9 +334,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end binary_encoding_random ]################################################
+    #########################[ end binary_encoding_random ]##################################
 
-    #########################[ start binary_encoding_all ]##############################################
+    #########################[ start binary_encoding_all ]###################################
     @staticmethod
     def binary_encoding_all(text: str) -> str:
         """
@@ -356,7 +356,7 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end binary_encoding_all ]################################################
+    #########################[ end binary_encoding_all ]#####################################
 
     # Dictionary of HTML entities for various characters
     _html_entities: Dict[str, str] = {
@@ -388,7 +388,7 @@ class BonfireTextEvasionEncode:
         "z": "&zeta;",
     }
 
-    #########################[ start html_entities_random ]##############################################
+    #########################[ start html_entities_random ]##################################
     @staticmethod
     def html_entities_random(text: str, probability: float = 0.4) -> str:
         """
@@ -414,9 +414,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end html_entities_random ]################################################
+    #########################[ end html_entities_random ]####################################
 
-    #########################[ start html_entities_all ]##############################################
+    #########################[ start html_entities_all ]#####################################
     @staticmethod
     def html_entities_all(text: str) -> str:
         """
@@ -467,7 +467,7 @@ class BonfireTextEvasionEncode:
         "😑",
     ]
 
-    #########################[ start _byte_to_variation_selector ]##############################################
+    #########################[ start _byte_to_variation_selector ]###########################
     @staticmethod
     def _byte_to_variation_selector(byte: int) -> str:
         """
@@ -486,9 +486,9 @@ class BonfireTextEvasionEncode:
             # Use the second range of variation selectors (U+E0100 to U+E01EF)
             return chr(0xE0100 + (byte - 16))
 
-    #########################[ end _byte_to_variation_selector ]################################################
+    #########################[ end _byte_to_variation_selector ]#############################
 
-    #########################[ start emoji_variation_selectors_all ]##############################################
+    #########################[ start emoji_variation_selectors_all ]#########################
     @staticmethod
     def emoji_variation_selectors_all(text: str) -> str:
         """
@@ -517,9 +517,9 @@ class BonfireTextEvasionEncode:
 
         return result
 
-    #########################[ end emoji_variation_selectors_all ]################################################
+    #########################[ end emoji_variation_selectors_all ]###########################
 
-    #########################[ start emoji_variation_selectors_random ]##############################################
+    #########################[ start emoji_variation_selectors_random ]######################
     @staticmethod
     def emoji_variation_selectors_random(text: str, probability: float = 0.5) -> str:
         """
@@ -548,7 +548,7 @@ class BonfireTextEvasionEncode:
 
         return " ".join(result)
 
-    #########################[ end emoji_variation_selectors_random ]################################################
+    #########################[ end emoji_variation_selectors_random ]########################
 
     _zalgo_chars = [
         "\u0300",
@@ -596,7 +596,7 @@ class BonfireTextEvasionEncode:
         "\u034f",
     ]
 
-    #########################[ start zalgo_random ]##############################################
+    #########################[ start zalgo_random ]##########################################
     @staticmethod
     def zalgo_random(text: str, probability: float = 0.4) -> str:
         """
@@ -624,9 +624,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end zalgo_random ]################################################
+    #########################[ end zalgo_random ]############################################
 
-    #########################[ start zalgo_all ]##############################################
+    #########################[ start zalgo_all ]#############################################
     @staticmethod
     def zalgo_all(text: str) -> str:
         """
@@ -650,7 +650,7 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end zalgo_all ]################################################
+    #########################[ end zalgo_all ]###############################################
 
     _circled_chars: Dict[str, str] = {
         "a": "ⓐ",
@@ -717,7 +717,7 @@ class BonfireTextEvasionEncode:
         "9": "⑨",
     }
 
-    #########################[ start circled_random ]##############################################
+    #########################[ start circled_random ]#########################################
     @staticmethod
     def circled_random(text: str, probability: float = 0.4) -> str:
         """
@@ -743,9 +743,9 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end circled_random ]################################################
+    #########################[ end circled_random ]###########################################
 
-    #########################[ start circled_all ]##############################################
+    #########################[ start circled_all ]############################################
     @staticmethod
     def circled_all(text: str) -> str:
         """
@@ -767,7 +767,7 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end circled_all ]################################################
+    #########################[ end circled_all ]##############################################
 
     _bubble_chars: Dict[str, str] = {
         "A": "🅰",
@@ -835,7 +835,7 @@ class BonfireTextEvasionEncode:
         " ": " ",
     }
 
-    #########################[ start bubble_random ]##############################################
+    #########################[ start bubble_random ]##########################################
     @staticmethod
     def bubble_random(text: str, probability: float = 0.4) -> str:
         """
@@ -861,7 +861,7 @@ class BonfireTextEvasionEncode:
 
         return "".join(result)
 
-    #########################[ end bubble_random ]################################################
+    #########################[ end bubble_random ]############################################
 
     #########################[ start bubble_all ]##############################################
     @staticmethod
@@ -888,4 +888,4 @@ class BonfireTextEvasionEncode:
     #########################[ end bubble_all ]################################################
 
 
-###################################[ end BonfireTextEvasionEncode ]##############################################
+###################################[ end BonfireTextEvasionEncode ]#####################################
